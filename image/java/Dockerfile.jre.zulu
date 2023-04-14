@@ -1,0 +1,83 @@
+ARG TAG=mosaicgreifswald/debian:latest
+FROM ${TAG}
+
+# ###license-information-start###
+# The MOSAIC-Project
+# __
+# Copyright (C) 2009 - 2023 Institute for Community Medicine
+# University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+# __
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# ###license-information-end###
+
+MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
+
+# variables
+ARG DATE_YMD="20230414"
+ARG JAVA_VERSION="17"
+ENV JAVA_HOME="/usr/lib/jvm/zulu${JAVA_VERSION}" \
+    ENTRY_JAVA_CACERTS="/entrypoint-java-cacerts"
+
+# annotations
+LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
+      org.opencontainers.image.authors="university-medicine greifswald" \
+      org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/jre" \
+      org.opencontainers.image.version="${JAVA_VERSION}-${DATE_YMD}" \
+      org.opencontainers.image.vendor="uni-greifswald.de" \
+      org.opencontainers.image.title="mosaic-jre" \
+      org.opencontainers.image.license="AGPLv3"
+
+# create folders and permissions
+USER root
+RUN echo && echo && \
+    echo ${LINE} && \
+    echo && \
+    cd ${MOS_TEMP_PATH} && \
+    echo "  Create new image by Dockerfile (using $(basename $0))" && \
+    echo "  |" && \
+    echo "  |____ 1. install system-updates" && \
+    (apt-get update > install.log 2>&1 || (>&2 cat install.log && echo && exit 1)) && \
+    (apt-get upgrade -y > install.log 2>&1 || (>&2 cat install.log && echo && exit 1)) && \
+    \
+    echo "  |____ 2. install missing packages (gnupg, jre)" && \
+    (( \
+        apt-get install -y gnupg && \
+        apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 0xB1998361219BD9C9 && \
+        curl -Lso zulu-repo_1.0.0-2_all.deb https://cdn.azul.com/zulu/bin/zulu-repo_1.0.0-2_all.deb && \
+        apt-get install -y ./zulu-repo_1.0.0-2_all.deb && \
+        apt-get update && \
+        apt-get install -y zulu${JAVA_VERSION}-jre \
+    ) > install.log 2>&1 || (>&2 cat install.log && echo && exit 1)) && \
+    \
+    echo "  |____ 3. register java" && \
+    register \
+        --os-updated \
+        --add-version="zulu-jre:\$(${JAVA_HOME}/bin/java -version 2>&1 | head -n1 | sed -r 's/^.+\"(.+)\".+$/\1/' | cat)" \
+        --add-entrypoint="ENTRY_JAVA_CACERTS:${ENTRY_JAVA_CACERTS}" && \
+    \
+    echo "  |____ 4. cleanup" && \
+    (( \
+        apt-get remove --purge --auto-remove -y gnupg && \
+        apt-get clean && \
+        apt-get autoclean && \
+        apt-get autoremove && \
+        rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/* && \
+        ln -s ${JAVA_HOME}/lib/security/cacerts ${ENTRY_JAVA_CACERTS} \
+    ) > install.log 2>&1 || (>&2 cat install.log && echo && exit 1)) && rm -f install.log && \
+    \
+    echo && echo ${LINE} && echo && versions && \
+    echo && echo ${LINE} && echo && entrypoints && \
+    echo && echo ${LINE} && echo
+
+USER ${USER}
