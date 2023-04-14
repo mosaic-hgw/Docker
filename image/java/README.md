@@ -18,7 +18,7 @@ Only the slimmer JRE from Azul-Zulu is installed.
 ## Usage
 ```shell
 # build java-image
-> cd mosaic-hgw/Docker/images/java
+> cd mosaic-hgw/Docker/image/java
 > docker build --tag="mosaicgreifswald/java:latest" --file="Dockerfile.jre.zulu" --build-arg JAVA_VERSION=17 .
 
 # "versions" shows all installed tools and components, with their versions.
