@@ -41,7 +41,7 @@ There are 3 strategies built into this docker image.
 ## Usage
 ```shell
 # build wildfly-image (required java-image mosaicgreifswald/java:latest)
-> cd git/docker/images/mosaic-images/app-server
+> cd mosaic-hgw/Docker/image/appserver
 > docker build --tag="mosaicgreifswald/wildfly:latest" --file="Dockerfile.app.wf26" .
 
 # "versions" shows all installed tools and components, with their versions.
