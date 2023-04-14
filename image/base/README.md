@@ -48,12 +48,12 @@ The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does no
 > cd mosaic-hgw/Docker/images/base
 > docker build --tag="mosaicgreifswald/base:latest" --file="Dockerfile.base.deb" .
 
-# "versions" zeigt alle installierten Tools und Komponenten, mit ihren Versionen.
+# "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/debian:latest versions
   last updated               : 2023-04-14 10:30:32
   Distribution               : Debian GNU/Linux 11.6
   
-# "entrypoints" listet alle registrierten Entrypoints auf.
+# "entrypoints" lists all registered entrypoints.
 > docker run --rm mosaicgreifswald/debian:latest entrypoints
   ENTRY_LOGS                 : /entrypoint-logs
 ```
