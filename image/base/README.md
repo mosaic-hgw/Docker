@@ -45,7 +45,7 @@ The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does no
 ## Usage
 ```shell
 # build base-image
-> cd mosaic-hgw/Docker/images/base
+> cd mosaic-hgw/Docker/image/base
 > docker build --tag="mosaicgreifswald/base:latest" --file="Dockerfile.base.deb" .
 
 # "versions" shows all installed tools and components, with their versions.
