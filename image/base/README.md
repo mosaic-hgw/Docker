@@ -59,8 +59,8 @@ The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does no
 ```
 
 ## Current Software-Versions on this Image
-| Date       | Tags                   | Changes                    |
-|------------|------------------------|----------------------------|
-| 2023-09-28 | `12`, `12.1`, `latest` | **Debian** 12.1 "bookworm" |
-| 2023-07-13 | `12.0`                 | **Debian** 12.0 "bookworm" |
-| 2023-04-25 | `11`, `11.7`           | **Debian** 11.7 "bullseye" |
+| Date       | Tags                                                                                                                                           | Changes                    |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------|
+| 2023-09-28 | `12`, `12.1`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/base/Dockerfile.base.deb))                           | **Debian** 12.1 "bookworm" |
+| 2023-07-13 | `12.0`                                                                                                                                         | **Debian** 12.0 "bookworm" |
+| 2023-04-25 | `11`, `11.7` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/2af37800a94baed6dff61d6533c499dfb42cd545/image/base/Dockerfile.base.deb)) | **Debian** 11.7 "bullseye" |
