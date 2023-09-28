@@ -23,7 +23,7 @@ FROM debian:stable-slim
 MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
 
 # variables
-ARG DATE_YMD="20230414"
+ARG DATE_YMD="20230630"
 ARG WAIT_FOR_IT_DOWNLOAD_URL="https://raw.githubusercontent.com/vishnubob/wait-for-it/ed77b63706ea721766a62ff22d3a251d8b4a6a30/wait-for-it.sh"
 ARG WAIT_FOR_IT_SHA256="2ea7475e07674e4f6c1093b4ad6b0d8cbbc6f9c65c73902fb70861aa66a6fbc0"
 
@@ -95,11 +95,17 @@ RUN echo && echo && \
     { \
         echo '#!/bin/bash'; \
         echo; \
-        echo 'echo "${LINE}"'; \
-        echo 'echo'; \
+        echo 'echo "${LINE}"; echo'; \
         echo 'echo "  https://hub.docker.com/repository/docker/mosaicgreifswald"'; \
         echo 'echo; echo "${LINE}"; echo'; \
         echo 'versions'; \
+        echo 'echo; echo "${LINE}"; echo'; \
+        echo; \
+        echo 'echo "  test write-permission in folder ${ENTRY_LOGS}"'; \
+        echo 'find ${ENTRY_LOGS} -maxdepth 2 -type d -exec realpath {} \; | while read DIR; do'; \
+        echo '  echo -n "  - ${DIR} -> "'; \
+        echo '  (touch ${DIR}/test.write.permission && rm ${DIR}/test.write.permission) 2>/dev/null && echo "ok" || echo "not permitted"'; \
+        echo 'done'; \
         echo 'echo; echo "${LINE}"; echo'; \
         echo; \
         echo 'RUN_SCRIPTS=$(cat '${HOME}'/run.sh | sed -n "/^### registered run-scripts/,//p" | tail -n+2 | sed "s/#//" | sort -k1 --sort=version)'; \
