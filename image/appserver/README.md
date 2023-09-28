@@ -16,26 +16,30 @@ There are 3 strategies built into this docker image.
 
 
 ## Relevant ENV Variables
-| Category   | Variable            | Available values or scheme | Default  | Purpose                                                                                           |
-|------------|---------------------|----------------------------|----------|---------------------------------------------------------------------------------------------------|
-| WF-Admin   | WF_NO_ADMIN         | true, false                | false    | set `true` if you don't need wildfly-admin                                                        |
-| WF-Admin   | WF_ADMIN_USER       | \<STRING\>                 | admin    | define username for wildfly-admin                                                                 |
-| WF-Admin   | WF_ADMIN_PASS       | \<STRING\>                 | -random- | to set password for wildfly-admin                                                                 |
-| Quality    | WF_HEALTHCHECK_URLS | \<NEWLINE-SEPARATED-URLs\> | -        | contain a list of urls to check the health of this container                                      |
-| Optimizing | WF_ADD_CLI_FILTER   | \<PIPE-SEPARATED-STRING\>  | -        | define additional pipe-separated file-extensions that jboss-cli should process                    |
-| Optimizing | WF_MARKERFILES      | true, false, auto          | auto     | these affect the creation of marker-files (.isdeploying or .deployed) in the deployment-directory |
-| Optimizing | JAVA_OPTS           | \<STRING\>                 | -        | you need more memory? then give yourself more memory and any more                                 |
-| Debugging  | WF_DEBUG            | true, false                | false    | set `true` to enable debug-mode in wildfly                                                        |
-| Debugging  | DEBUG_PORT          | \<IP\>:\<PORT\>            | *:8787   | for debugging you can change the ip:port                                                          |
+| Category   | Variable            | Available values or scheme               | Default       | Purpose                                                                                           |
+|------------|---------------------|------------------------------------------|---------------|---------------------------------------------------------------------------------------------------|
+| Optimizing | TZ                  | \<STRING\>                               | Europe/Berlin |                                                                                                   |
+| Optimizing | MOS_RUN_MODE        | action \| service \| cascade \| external | service       |                                                                                                   |
+| WF-Admin   | WF_NO_ADMIN         | true \| false                            | false         | set `true` if you don't need wildfly-admin                                                        |
+| WF-Admin   | WF_ADMIN_USER       | \<STRING\>                               | admin         | define username for wildfly-admin                                                                 |
+| WF-Admin   | WF_ADMIN_PASS       | \<STRING\>                               | -random-      | to set password for wildfly-admin                                                                 |
+| Quality    | WF_HEALTHCHECK_URLS | \<NEWLINE-SEPARATED-URLs\>               | -             | contain a list of urls to check the health of this container                                      |
+| Optimizing | WF_ADD_CLI_FILTER   | \<PIPE-SEPARATED-STRING\>                | -             | define additional pipe-separated file-extensions that jboss-cli should process                    |
+| Optimizing | WF_MARKERFILES      | true \| false \| auto                    | auto          | these affect the creation of marker-files (.isdeploying or .deployed) in the deployment-directory |
+| Optimizing | JAVA_OPTS           | \<STRING\>                               | -             | you need more memory? then give yourself more memory or define any system-variables               |
+| Debugging  | WF_DEBUG            | true \| false                            | false         | set `true` to enable debug-mode in wildfly                                                        |
+| Debugging  | DEBUG_PORT          | \<IP\>:\<PORT\>                          | *:8787        | for debugging you can change the ip:port                                                          |
 
 
 ## Relevant Entrypoints
-| Path                            | ref. ENV-Variable     | Type   | Purpose                                                                                          |
-|---------------------------------|-----------------------|--------|--------------------------------------------------------------------------------------------------|
-| /entrypoint-wildfly-cli         | ENTRY_WILDFLY_CLI     | folder | to execute JBoss-cli-files before start WildFly (read-only access)                               |
-| /entrypoint-wildfly-deployments | ENTRY_WILDFLY_DEPLOYS | folder | to import your deployments, also ear- and/or war-files (read-only access, optional write access) |
-| /entrypoint-wildfly-addins      | ENTRY_WILDFLY_ADDINS  | folder | to import additional files for deployments (read-only access)                                    |
-| /entrypoint-wildfly-logs        | ENTRY_WILDFLY_LOGS    | folder | to export all available log-files (read/write access)                                            |
+| Path                            | ref. ENV-Variable     | Type   | Purpose                                                                                                                            |
+|---------------------------------|-----------------------|--------|------------------------------------------------------------------------------------------------------------------------------------|
+| /entrypoint-logs                | ENTRY_LOGS            | folder | All further layers can store their own log files here in subdirectories.                                                           |
+| /entrypoint-java-cacerts        | ENTRY_JAVA_CACERTS    | file   | The entrypoint can be used to store its own cacerts, e.g. containing public-keys of server-certificates for specific web requests. |
+| /entrypoint-wildfly-cli         | ENTRY_WILDFLY_CLI     | folder | to execute JBoss-cli-files before start WildFly (read-only access)                                                                 |
+| /entrypoint-wildfly-deployments | ENTRY_WILDFLY_DEPLOYS | folder | to import your deployments, also ear- and/or war-files (read-only access, optional write access)                                   |
+| /entrypoint-wildfly-addins      | ENTRY_WILDFLY_ADDINS  | folder | to import additional files for deployments (read-only access)                                                                      |
+| /entrypoint-wildfly-logs        | ENTRY_WILDFLY_LOGS    | folder | to export all available log-files (read/write access)                                                                              |
 
 
 ## Usage
@@ -77,8 +81,93 @@ There are 3 strategies built into this docker image.
     -e WF_HEALTHCHECK_URLS=http://localhost:8080\nhttp://localhost:8080/your-app.html \
     -p 8080:8080 \
     -p 9990:9990 \
-    -v /path/to/your/deployments:/entrypoint-wildfly-deployments \
-    -v /path/to/your/batch-files:/entrypoint-wildfly-cli \
+    -v /path/to/your/cli-files:/entrypoint-wildfly-cli \
+    -v /path/to/readonly/deployments:/entrypoint-wildfly-deployments \
     mosaicgreifswald/wildfly:latest
-
 ```
+
+
+## Usage with docker compose
+over docker-compose with dependent on mysql-db (example)
+```yml
+version: '3'
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: top-secret
+    volumes:
+      - /path/to/your/init-sql-files:/docker-entrypoint-initdb.d
+  wildfly:
+    image: mosaicgreifswald/wildfly
+    ports:
+      - 8080:8080
+      - 9990:9990
+    depends_on:
+      - mysql
+    environment:
+      WF_ADMIN_PASS: top-secret
+      WF_HEALTHCHECK_URLS: |
+        http://localhost:8080
+        http://localhost:8080/your-app.html
+    volumes:
+      - /path/to/your/cli-files:/entrypoint-wildfly-cli
+      - /path/to/your/deployments:/entrypoint-wildfly-deployments
+    entrypoint: /bin/bash
+    command: -c "./wait-for-it.sh mysql:3306 -t 60 && ./run.sh"
+```
+
+
+## What are JBoss-CLI-File?
+CLI-files are text files that contain a list of CLI commands to execute on a JBoss-server.
+They are useful for scripting and batch processing tasks, such as deploying applications,
+configuring system settings, or performing administrative operations.
+In this way it is possible to use our WildFly-image without having to modify it for your own purposes.
+All relevant adjustments can be written into a CLI-file and passed to WildFly.
+
+### Examples for create JBoss-CLI-File
+* add mysql-datasource
+  ```sh
+  data-source add \
+    --name=MySQLPool \
+    --jndi-name=java:/jboss/MySQLDS \
+    --connection-url=jdbc:mysql://mysql:3306/dbName \
+    --user-name=mosaic \
+    --password=top-secret \
+    --driver-name=mysql
+  ```
+
+* add postgresql-jdbc-driver-module and datasource
+  ```sh
+  batch
+
+  module add \
+    --name=org.postgre \
+    --resources=/entrypoint-wildfly-cli/postgresql.jar \
+    --dependencies=javax.api,javax.transaction.api
+
+  /subsystem=datasources/jdbc-driver=postgre: \
+    add( \
+      driver-name="postgre", \
+      driver-module-name="org.postgre", \
+      driver-class-name=org.postgresql.Driver \
+    )
+
+  data-source add \
+    --name=PostgreSQLPool \
+    --jndi-name=java:/jboss/PostgreSQLDS \
+    --connection-url=jdbc:postgresql://app-db:5432/dbName \
+    --user-name=mosaic \
+    --password=top-secret \
+    --driver-name=postgre
+
+  run-batch
+  ```
+
+## Current Software-Versions on this Image
+| Date                               | Tags                                                                                                                                                                         | Changes                                                                                                                                                            |
+|------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 2023-09-28<br><br><br><br><br>     | `pre` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf29))<br><br><br><br><br>                                                 | **Debian** 12.1 "bookworm"<br>**openJRE** 17.0.8<br>**WildFly** 29.0.1.Final<br>**EclipseLink** 4.0.2<br>**KeyCloak-Client** deleted                               |
+| 2023-07-13                         | `26-20230713`, `26`, `latest`                                                                                                                                                | **Debian** 12.0 "bookworm"                                                                                                                                         |
+| 2023-05-23                         | `26-20230523`                                                                                                                                                                | **Debian** 11.7 "bullseye"                                                                                                                                         |
+| 2023-04-25<br><br><br><br><br><br> | `26-20230425` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5ab98087291eb171e64065ec8c1e3f0e66e2a4d3/image/appserver/Dockerfile.app.wf26))<br><br><br><br><br><br> | **Debian** 11.6 "bullseye"<br>**ZuluJRE** 17.0.7<br>**WildFly** 26.1.3.Final<br>**MySQL-Connector** 8.0.33<br>**EclipseLink** 2.7.12<br>**KeyCloak-Client** 19.0.2 |
