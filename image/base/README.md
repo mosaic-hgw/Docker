@@ -19,10 +19,10 @@ register \
 - The parameter `--add-entrypoint="NAME:PATH"` specifies a new entry point in the image that can be referenced at start-up via `--volume "*:*"` to exchange data with the host system.
 - `--add-healthcheck-script=SCRIPT` is used to announce a bash script to be used for health checking the layer. The script to be executed may generate output, but must be terminated with exit code 1 if the corresponding layer is no longer functioning properly. Exit code 0 means "All is well".
 - With the last parameter `--add-run-script="ORDER:TYPE:RUN:STARTED"` at least 3, but maximum 4 values must be passed.
-  - ORDER' determines the start order, whereby a larger value means a later start. As a rough guide, databases should start with `10`, app servers with `20` and tests from `30`.
-  - With `TYPE` the start type of the layer is defined, which can contain the characteristics "*action*" and "*service*".
-  - With "*action*" the `RUN` script is started and no further `RUN` scripts are executed until this one is finished.
-  - "*service*" starts the `RUN` script in the background. If the optional `STARTED` script is specified, this is used to check and wait when the services has started up correctly and then start the other `RUN` scripts.
+  - `ORDER` determines the start order, whereby a larger value means a later start. As a rough guide, databases should start with `10`, app servers with `20` and tests from `30`.
+  - With `TYPE` the start type of the layer is defined, which can contain the characteristics `action` and `service`.
+  - If `TYPE` has value `action` the `RUN` script is started and no further `RUN` scripts are executed until this one is finished.
+  - With `service` as `TYPE` value starts the `RUN` script in the background. If the optional `STARTED` script is specified, this is used to check and wait when the services has started up correctly and then start the other `RUN` scripts.
 
 
 ## Relevant ENV variables
@@ -34,8 +34,8 @@ register \
 The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does not affect the individual layer, but the behaviour in the whole image:
 - `action` will wait until all action-run-scripts are successful finished and then also stop the service-run-scripts
 - `service` starts all run-scripts and tries to restart services if they quit
-- `cascade` like `service` but stops them again as soon as a service ends
-- `external` like `service` but does not restart the services
+- `cascade` like `service` but also stops all other services as soon as a service ends
+- `external` like `service` but does not restart a ended service nor does it stop the others
 
 ## Relevant Entrypoints
 | Path             | ref. ENV-Variable  | Type   | Purpose                                                                  |
@@ -45,15 +45,22 @@ The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does no
 ## Usage
 ```shell
 # build base-image
-> cd mosaic-hgw/Docker/image/base
+> cd mosaic-hgw/Docker/images/base
 > docker build --tag="mosaicgreifswald/base:latest" --file="Dockerfile.base.deb" .
 
 # "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/debian:latest versions
-  last updated               : 2023-04-14 10:30:32
-  Distribution               : Debian GNU/Linux 11.6
+  last updated               : 2023-09-28 10:30:32
+  Distribution               : Debian GNU/Linux 12.1
   
 # "entrypoints" lists all registered entrypoints.
 > docker run --rm mosaicgreifswald/debian:latest entrypoints
   ENTRY_LOGS                 : /entrypoint-logs
 ```
+
+## Current Software-Versions on this Image
+| Date       | Tags                   | Changes                    |
+|------------|------------------------|----------------------------|
+| 2023-09-28 | `12`, `12.1`, `latest` | **Debian** 12.1 "bookworm" |
+| 2023-07-13 | `12.0`                 | **Debian** 12.0 "bookworm" |
+| 2023-04-25 | `11`, `11.7`           | **Debian** 11.7 "bullseye" |
