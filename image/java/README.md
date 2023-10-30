@@ -23,9 +23,9 @@ Only the slimmer JRE from Azul-Zulu is installed.
 
 # "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/zulujre:latest versions
-  last updated               : 2023-09-28 10:45:51
-  Distribution               : Debian GNU/Linux 12.1
-  zulu-jre                   : 17.0.8.1
+  last updated               : 2023-10-30 07:59:58
+  Distribution               : Debian GNU/Linux 12.2
+  zulu-jre                   : 17.0.9
   
 # "entrypoints" lists all registered entrypoints.
 > docker run --rm mosaicgreifswald/zulujre:latest entrypoints
@@ -34,13 +34,14 @@ Only the slimmer JRE from Azul-Zulu is installed.
 
 # get java-version
 > docker run --rm -it mosaicgreifswald/zulujre:latest java -version
-openjdk version "17.0.8.1" 2023-08-24 LTS
-OpenJDK Runtime Environment Zulu17.44+53-CA (build 17.0.8.1+1-LTS)
-OpenJDK 64-Bit Server VM Zulu17.44+53-CA (build 17.0.8.1+1-LTS, mixed mode, sharing)
+openjdk version "17.0.9" 2023-10-17 LTS
+OpenJDK Runtime Environment Zulu17.46+19-CA (build 17.0.9+8-LTS)
+OpenJDK 64-Bit Server VM Zulu17.46+19-CA (build 17.0.9+8-LTS, mixed mode, sharing)
 ```
 
 ## Current Software-Versions on this Image
 | Date       | Tags                                                                                                   | Changes                                         |
 |------------|--------------------------------------------------------------------------------------------------------|-------------------------------------------------|
-| 2023-09-28 | `17`, `17.0.8.1`, `latest`                                                                             | **Debian** 12.1 "bookworm"<br>**Java** 17.0.8.1 |
+| 2023-10-30 | `17.0.9`, `17`, `latest`                                                                               | **Debian** 12.2 "bookworm"<br>**Java** 17.0.9   |
+| 2023-09-28 | `17.0.8.1`                                                                                             | **Debian** 12.1 "bookworm"<br>**Java** 17.0.8.1 |
 | 2023-04-25 | `17.0.7` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/java/Dockerfile.jre.zulu)) | **Debian** 11.6 "bullseye"<br>**Java** 17.0.7   |
