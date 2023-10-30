@@ -24,8 +24,9 @@ FROM ${TAG}
 MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
 
 # variables
-ARG DATE_YMD="20230817"
+ARG DATE_YMD="20231030"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
+ARG SKIP_VULNERABILITIES_FIX="false"
 
 ARG WILDFLY_VERSION="29.0.1.Final"
 ARG WILDFLY_DOWNLOAD_URL="https://github.com/wildfly/wildfly/releases/download/${WILDFLY_VERSION}/wildfly-${WILDFLY_VERSION}.tar.gz"
@@ -98,6 +99,38 @@ RUN echo && echo && \
     mkdir -p ${WILDFLY_HOME}/standalone/log && touch ${WILDFLY_HOME}/standalone/log/server.log && \
     echo "  |  |____ 6. set permissions" && \
     chown -R ${USER}:${USER} ${WILDFLY_HOME} && chmod -R g+rw ${WILDFLY_HOME} && \
+    \
+	echo -n "  |  |____ 7. update vulnerable java-libraries" && \
+    ([ "${SKIP_VULNERABILITIES_FIX}" = "true" ] && echo " (skipped)" || (echo && \
+    I=0 && ( \
+        # format: base-download-url jar-base-name jar-new-version(optional) \
+        echo "${MAVEN_REPOSITORY}/com/h2database/h2 h2 2.2.220"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/avro/avro avro 1.11.3"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/santuario/xmlsec xmlsec 3.0.3"; \
+        echo "${MAVEN_REPOSITORY}/io/netty/netty-codec-http2 netty-codec-http2 4.1.100.Final"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/wss4j/wss4j-ws-security-dom wss4j-ws-security-dom 3.0.1"; \
+        echo "${MAVEN_REPOSITORY}/org/eclipse/jgit/org.eclipse.jgit org.eclipse.jgit 6.6.1.202309021850-r"; \
+        echo "${MAVEN_REPOSITORY}/xerces/xercesImpl xercesImpl 2.12.2"; \
+    ) | while read -r URL NAME VERSION; do UPDATED="false" && \
+       I=`expr $I + 1` && OLD_JARS=$(find /opt/ -type f -name "${NAME}-[0-9]*.*ar") && \
+       if [ "x${OLD_JARS}" = "x" ]; then echo "  |  |  |____ $I. ${NAME} not found" && continue; fi && \
+       for OLD_JAR in ${OLD_JARS}; do \
+           if [ "x" = "x${VERSION}" ]; then \
+               VERSION=$(curl -LfSs ${URL} | grep -E ">[0-9]\.[-a-zA-Z0-9\.]+/<" | sort -Vuk2 | tail -n1 | sed -r "s/^.+>([0-9]\.[-a-zA-Z0-9\.]+).+$/\1/"); \
+           fi && \
+           echo -n "  |  |  |____ $I. ${OLD_JAR} > ${VERSION} > " && \
+           OLD_VERSION=$(echo ${OLD_JAR} | rev | cut -d'-' -f1 | rev | sed 's/.jar//') && \
+           if [ "${OLD_VERSION}" = "${VERSION}" ]; then echo "same version" && continue; fi && \
+           JAR_FILE="${NAME}-${VERSION}.jar" && \
+           curl -Lfso $(dirname "${OLD_JAR}")/${JAR_FILE} "${URL}/${VERSION}/${JAR_FILE}" && \
+           if [ -f "$(dirname "${OLD_JAR}")/module.xml" ]; then \
+               sed -r "s/${NAME}\-[0-9]+.+\.jar/${JAR_FILE}/" -i $(dirname "${OLD_JAR}")/module.xml; \
+           fi && \
+           rm -f ${OLD_JAR} && \
+           UPDATED="true" && echo "ok" || echo "failed"; \
+       done ; \
+       ([ "true" = "${UPDATED}" ] || echo "  |  |  |        nothing to update for ${NAME}") ; \
+    done)) && \
     \
     echo "  |____ 4. download additional components" && \
     echo -n "  |  |____ 1. download mysql-connector " && \
