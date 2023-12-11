@@ -1,4 +1,4 @@
-ARG TAG=mosaicgreifswald/java:latest
+ARG TAG=mosaicgreifswald/zulujre:latest
 FROM ${TAG}
 
 # ###license-information-start###
@@ -24,16 +24,16 @@ FROM ${TAG}
 MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
 
 # variables
-ARG DATE_YMD="20230414"
+ARG DATE_YMD="20231211"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 
 ARG WILDFLY_VERSION="26.1.3.Final"
 ARG WILDFLY_DOWNLOAD_URL="https://github.com/wildfly/wildfly/releases/download/${WILDFLY_VERSION}/wildfly-${WILDFLY_VERSION}.tar.gz"
 ARG WILDFLY_SHA256="aadd317c62616f6b5735ae92151d06c1f03c46eba448958d982c61f02528ae59"
 
-ARG MYSQL_CONNECTOR_VERSION="8.0.32"
+ARG MYSQL_CONNECTOR_VERSION="8.0.33"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
-ARG MYSQL_CONNECTOR_SHA256="522329fe925980f02e5eb89b59d227245d345415ff0c08932a68c9765c13acc5"
+ARG MYSQL_CONNECTOR_SHA256="e2a3b2fc726a1ac64e998585db86b30fa8bf3f706195b78bb77c5f99bf877bd9"
 
 ARG ECLIPSELINK_VERSION="2.7.12"
 ARG ECLIPSELINK_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/eclipse/persistence/eclipselink/${ECLIPSELINK_VERSION}/eclipselink-${ECLIPSELINK_VERSION}.jar"
@@ -103,6 +103,48 @@ RUN echo && echo && \
     echo "  |  |____ 6. set permissions" && \
     chown -R ${USER}:${USER} ${WILDFLY_HOME} && chmod -R g+rw ${WILDFLY_HOME} && \
     \
+	echo -n "  |  |____ 7. update vulnerable java-libraries" && \
+    ([ "${SKIP_VULNERABILITIES_FIX}" = "true" ] && echo " (skipped)" || (echo && \
+    I=0 && ( \
+        # format: base-download-url jar-base-name jar-new-version(optional) \
+        echo "${MAVEN_REPOSITORY}/com/fasterxml/jackson/core/jackson-databind jackson-databind 2.13.4.2"; \
+        echo "${MAVEN_REPOSITORY}/com/fasterxml/woodstox/woodstox-core woodstox-core 6.4.0"; \
+        echo "${MAVEN_REPOSITORY}/com/google/guava/guava guava 32.0.1-jre"; \
+        echo "${MAVEN_REPOSITORY}/com/google/protobuf/protobuf-java protobuf-java 3.19.6"; \
+        echo "${MAVEN_REPOSITORY}/com/h2database/h2 h2"; \
+        echo "${MAVEN_REPOSITORY}/com/squareup/okio/okio okio 1.17.6"; \
+        echo "${MAVEN_REPOSITORY}/io/grpc/grpc-protobuf grpc-protobuf 1.53.0"; \
+        echo "${MAVEN_REPOSITORY}/io/netty/netty-codec-http2 netty-codec-http2 4.1.100.Final"; \
+        echo "${MAVEN_REPOSITORY}/io/netty/netty-handler netty-handler 4.1.94.Final"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/activemq/artemis-server artemis-server 2.24.0"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/avro/avro avro 1.11.3"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/santuario/xmlsec xmlsec 3.0.3"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/sshd/sshd-common sshd-common 2.9.2"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/sshd/sshd-core sshd-core 2.9.2"; \
+        echo "${MAVEN_REPOSITORY}/org/jsoup/jsoup jsoup 1.15.3"; \
+        echo "${MAVEN_REPOSITORY}/org/yaml/snakeyaml snakeyaml 2.0"; \
+        echo "${MAVEN_REPOSITORY}/xerces/xercesImpl xercesImpl 2.12.2"; \
+    ) | while read -r URL NAME VERSION; do UPDATED="false" && \
+       I=`expr $I + 1` && OLD_JARS=$(find /opt/ -type f -name "${NAME}-[0-9]*.*ar") && \
+       if [ "x${OLD_JARS}" = "x" ]; then echo "  |  |  |____ $I. ${NAME} not found" && continue; fi && \
+       for OLD_JAR in ${OLD_JARS}; do \
+           if [ "x" = "x${VERSION}" ]; then \
+               VERSION=$(curl -LfSs ${URL} | grep -E ">[0-9]\.[-a-zA-Z0-9\.]+/<" | sort -Vuk2 | tail -n1 | sed -r "s/^.+>([0-9]\.[-a-zA-Z0-9\.]+).+$/\1/"); \
+           fi && \
+           echo -n "  |     |____ $I. ${OLD_JAR} > ${VERSION} > " && \
+           OLD_VERSION=$(echo ${OLD_JAR} | rev | cut -d'-' -f1 | rev | sed 's/.jar//') && \
+           if [ "${OLD_VERSION}" = "${VERSION}" ]; then echo "same version" && continue; fi && \
+           JAR_FILE="${NAME}-${VERSION}.jar" && \
+           curl -Lfso $(dirname "${OLD_JAR}")/${JAR_FILE} "${URL}/${VERSION}/${JAR_FILE}" && \
+           if [ -f "$(dirname "${OLD_JAR}")/module.xml" ]; then \
+               sed -r "s/${NAME}\-[0-9]+.+\.jar/${JAR_FILE}/" -i $(dirname "${OLD_JAR}")/module.xml; \
+           fi && \
+           rm -f ${OLD_JAR} && \
+           UPDATED="true" && echo "ok" || echo "failed"; \
+       done ; \
+       ([ "true" = "${UPDATED}" ] || echo "  |  |  |        nothing to update for ${NAME}") ; \
+    done)) && \
+    \
     echo "  |____ 4. download additional components" && \
     echo -n "  |  |____ 1. download mysql-connector " && \
     (curl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL} > install.log 2>&1 || (>&2 cat install.log && >&2 /bin/echo -e "\ncurl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
@@ -115,13 +157,8 @@ RUN echo && echo && \
     (curl -Lfo ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL} > install.log 2>&1 || (>&2 cat install.log && >&2 /bin/echo -e "\ncurl -Lfo ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL}\n" && exit 1))  && \
     echo "($(du -h ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar | cut -f1))" && \
     (sha256sum ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar | grep -q ${ECLIPSELINK_SHA256} > /dev/null|| (>&2 echo "sha256sum failed $(sha256sum ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar)" && exit 1)) && \
-    sed -i "s/<\/resources>/\n \
-        <resource-root path=\"eclipselink-${ECLIPSELINK_VERSION}.jar\">\n \
-            <filter>\n \
-                <exclude path=\"javax\/**\" \/>\n \
-            <\/filter>\n \
-        <\/resource-root>\n \
-    <\/resources>/" ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/module.xml && \
+    sed -i "s/<\/resources>/    <resource-root path=\"eclipselink-${ECLIPSELINK_VERSION}.jar\"\/>\n    <\/resources>/;\
+        s/<\/dependencies>/    <module name=\"java.rmi\"\/>\n        <module name=\"java.desktop\"\/>\n        <module name=\"java.xml\"\/>\n    <\/dependencies>/" ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/module.xml && \
     chown -R ${USER}:${USER} ${WILDFLY_HOME}/${ECLIPSELINK_PATH} && \
     \
     echo "  |____ 5. install keycloack-client" && \
@@ -361,7 +398,24 @@ RUN echo && echo && \
         echo ${WILDFLY_HOME}'/create_wildfly_admin.sh'; \
         echo; \
         echo 'if [[ ! ${WF_MARKERFILES,,} =~ ^(true|false)$ ]]; then'; \
-        echo '    WF_MARKERFILES=$((touch ${ENTRY_WILDFLY_DEPLOYS}/mf.test && rm ${ENTRY_WILDFLY_DEPLOYS}/mf.test) 2>/dev/null && echo "true" || echo "false")'; \
+        echo '    echo "${LINE}"'; \
+        echo '    echo "  test write-permission in folder ${ENTRY_WILDFLY_DEPLOYS}"'; \
+        echo '    MF_TESTFILE=${ENTRY_WILDFLY_DEPLOYS}/mf.test'; \
+        echo '    touch ${MF_TESTFILE}.1 2>/dev/null'; \
+        echo '    if [ -e ${MF_TESTFILE}.1 ]; then'; \
+        echo '      touch ${MF_TESTFILE}.2 -r ${MF_TESTFILE}.1'; \
+        echo '      if [ "" = "$(stat -c %y ${MF_TESTFILE}.* | uniq -u)" ]; then'; \
+        echo '        echo "  write-permission detected -> WF_MARKERFILES=true"'; \
+        echo '        WF_MARKERFILES="true"'; \
+        echo '      else'; \
+        echo '        echo "  write-permission detected, but not POSIX-conform -> WF_MARKERFILES=false"'; \
+        echo '        WF_MARKERFILES="false"'; \
+        echo '      fi'; \
+        echo '    else'; \
+        echo '      echo "  no write-permission detected -> WF_MARKERFILES=false"'; \
+        echo '      WF_MARKERFILES="false"'; \
+        echo '    fi'; \
+        echo '    rm ${MF_TESTFILE}.* 2>/dev/null'; \
         echo 'fi'; \
         echo; \
         echo 'if [[ "${WF_MARKERFILES,,}" != "$(cat '${MOS_READY_PATH}'/markerfiles_mode)" ]]; then'; \
@@ -393,12 +447,12 @@ RUN echo && echo && \
     } > ${WILDFLY_HOME}/run_wildfly.sh && \
     \
     cd ${HOME} && \
-    echo "  |____ 7. prepare wildfly" && \
-    echo -n "  |  |____ 1. start app-server" && \
+    echo "  |____ 6. prepare wildfly" && \
+    echo -n "  |  |____ 1. start app-server (0s)" && \
     (${WILDFLY_HOME}/bin/standalone.sh > install.log 2>&1 &) && \
-    STARTTIME=$(date +%s) && \
+    START=$(date +%s) && \
     TIMEOUT=30 && \
-    (until `/bin/bash ${WILDFLY_HOME}/wildfly_started.sh`;do sleep 1;echo -n '.';if [ $(($(date +%s)-STARTTIME)) -ge $TIMEOUT ];then echo;cat install.log;echo;exit 1;fi;done;echo -e "\r  |  |____ 1. start app-server $(printf %-30s '('$(($(date +%s)-STARTTIME))'s)')") && \
+    (until `/bin/bash ${WILDFLY_HOME}/wildfly_started.sh`;do sleep 1;SEC=$(($(date +%s)-START));echo -n "\b\b\b$([ ${SEC} -gt 10 ] && echo "\b")${SEC}s)";if [ ${SEC} -ge $TIMEOUT ];then echo;cat install.log;echo;exit 1;fi;done;echo) && \
     echo "  |  |____ 2. install mysql-connector" && \
     ($JBOSS_CLI -c "module add --name=com.mysql --resources=${MOS_TEMP_PATH}/mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar --dependencies=javax.api\,javax.transaction.api" > install.log || (>&2 cat install.log && exit 1)) && \
     echo "  |  |____ 3. add datasource-driver for mysql" && \
@@ -438,7 +492,7 @@ RUN echo && echo && \
         mkdir ${WILDFLY_HOME}/standalone/data/addins ${WF_INTERNAL_CLI_PATH} && \
         ln -s ${WF_LOGS} ${ENTRY_WILDFLY_LOGS} && \
         ln -s ${WILDFLY_HOME}/standalone/data/addins ${ENTRY_WILDFLY_ADDINS} && \
-        chown ${USER}:${USER} -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_ADDINS} ${ENTRY_WILDFLY_LOGS} && \
+        chown ${USER}:${USER} -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_ADDINS} ${ENTRY_WILDFLY_LOGS} ${WILDFLY_HOME}/standalone/log/* && \
         chmod u+x -R ${HOME}/**/*.sh \
     ) > install.log 2>&1 || (>&2 cat install.log && echo && exit 1)) && rm -f install.log && \
     \
