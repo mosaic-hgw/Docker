@@ -23,7 +23,7 @@ FROM debian:stable-slim
 MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
 
 # variables
-ARG DATE_YMD="20230630"
+ARG DATE_YMD="20231211"
 ARG WAIT_FOR_IT_DOWNLOAD_URL="https://raw.githubusercontent.com/vishnubob/wait-for-it/ed77b63706ea721766a62ff22d3a251d8b4a6a30/wait-for-it.sh"
 ARG WAIT_FOR_IT_SHA256="2ea7475e07674e4f6c1093b4ad6b0d8cbbc6f9c65c73902fb70861aa66a6fbc0"
 
@@ -198,15 +198,9 @@ RUN echo && echo && \
         echo '### registered run-scripts'; \
     } > run.sh && \
     \
-    { \
-        echo '#!/bin/bash'; \
-        echo 'echo "  last updated               : '$(date +"%F %T")'"'; \
-    } > versions.sh && \
+    echo '#!/bin/bash' | tee healthcheck.sh entrypoints.sh > versions.sh && \
+    echo 'echo "  last updated               : '$(date +"%F %T")'"' >> versions.sh && \
     ln -s ${HOME}/versions.sh /usr/bin/versions && \
-    \
-    { \
-        echo '#!/bin/bash'; \
-    } > healthcheck.sh > entrypoints.sh && \
     ln -s ${HOME}/entrypoints.sh /usr/bin/entrypoints && \
     \
     echo "  |____ 7. create versions and entrypoints" && \
