@@ -24,7 +24,7 @@ FROM ${TAG}
 MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
 
 # variables
-ARG DATE_YMD="20231211"
+ARG DATE_YMD="20231219"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 
 ARG WILDFLY_VERSION="26.1.3.Final"
@@ -35,10 +35,10 @@ ARG MYSQL_CONNECTOR_VERSION="8.0.33"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
 ARG MYSQL_CONNECTOR_SHA256="e2a3b2fc726a1ac64e998585db86b30fa8bf3f706195b78bb77c5f99bf877bd9"
 
-ARG ECLIPSELINK_VERSION="2.7.12"
+ARG ECLIPSELINK_VERSION="2.7.14"
 ARG ECLIPSELINK_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/eclipse/persistence/eclipselink/${ECLIPSELINK_VERSION}/eclipselink-${ECLIPSELINK_VERSION}.jar"
 ARG ECLIPSELINK_PATH="modules/system/layers/base/org/eclipse/persistence/main"
-ARG ECLIPSELINK_SHA256="6718e2f5c76bd6898544742748008ef8e7d038958f867a8fe51fde59a33326d2"
+ARG ECLIPSELINK_SHA256="4c8e813a19f1a64729e678b66e58f1f3d83535b26ae9ffeeb14c7969a38efa13"
 
 ARG KEYCLOAK_VERSION="19.0.2"
 ARG KEYCLOAK_DOWNLOAD_URL="https://github.com/keycloak/keycloak/releases/download/${KEYCLOAK_VERSION}/keycloak-oidc-wildfly-adapter-${KEYCLOAK_VERSION}.tar.gz"
@@ -312,6 +312,9 @@ RUN echo && echo && \
         echo '            exit 125'; \
         echo '        fi'; \
         echo '    done'; \
+        echo '    echo "${LINE}"'; \
+        echo '    echo "  All cli-files successfully executed."'; \
+        echo '    echo "  > restart wildfly"'; \
         echo '    '${JBOSS_CLI}' -c ":shutdown"'; \
         echo 'fi'; \
         echo; \
