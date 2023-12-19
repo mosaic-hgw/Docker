@@ -50,12 +50,12 @@ There are 3 strategies built into this docker image.
 
 # "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/wildfly:latest versions
-  last updated               : 2023-12-11 16:03:27
+  last updated               : 2023-12-19 14:56:32
   Distribution               : Debian GNU/Linux 12.4
   zulu-jre                   : 17.0.9
   WildFly                    : 26.1.3.Final
   MySQL-Connector            : 8.0.33
-  EclipseLink                : 2.7.12
+  EclipseLink                : 2.7.14
   KeyCloak-Client            : 19.0.2
 
 # "entrypoints" lists all registered entrypoints.
@@ -175,7 +175,7 @@ All relevant adjustments can be written into a CLI-file and passed to WildFly.
 |------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | 2023-12-11<br><br><br><br>         | `30-20231211`, `30`, `preview` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf30))<br><br><br><br> | **Debian** 12.4 "bookworm"<br>**openJRE** 21.0.1<br>**WildFly** 30.0.1.Final<br>**EclipseLink** 4.0.2                                                              |
 | 2023-10-30<br><br><br><br><br>     | `29`<br><br><br><br><br>                                                                                                                          | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9<br>**WildFly** 29.0.1.Final<br>**EclipseLink** 4.0.2<br>**KeyCloak-Client** deleted                               |
-| 2023-12-11                         | `26-20231211`, `26`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf26))                  | **Debian** 12.4 "bookworm"                                                                                                                                         |
+| 2023-12-19<br><br>                 | `26-20231219`, `26`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf26))<br><br>          | **Debian** 12.4 "bookworm"<br>**EclipseLink** 2.7.14                                                                                                               |
 | 2023-10-30<br><br>                 | `26-20231030`<br><br>                                                                                                                             | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9                                                                                                                   |
 | 2023-07-13                         | `26-20230713`                                                                                                                                     | **Debian** 12.0 "bookworm"                                                                                                                                         |
 | 2023-05-23                         | `26-20230523`                                                                                                                                     | **Debian** 11.7 "bullseye"                                                                                                                                         |
