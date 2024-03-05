@@ -1,0 +1,12 @@
+# driver-download: https://github.com/microsoft/mssql-jdbc/releases/latest
+
+module add \
+  --name=com.mssql \
+  --dependencies=javax.api,javax.transaction.api \
+  --resources=/entrypoint-wildfly-cli/ext/mssql-jdbc-12.6.1.jre11.jar
+
+/subsystem=datasources/jdbc-driver=mssql:add( \
+  driver-name="mssql", \
+  driver-module-name="com.mssql", \
+  driver-class-name="com.microsoft.sqlserver.jdbc.SQLServerDriver" \
+)

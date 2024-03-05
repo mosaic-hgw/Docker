@@ -1,0 +1,12 @@
+# driver-download: https://repo1.maven.org/maven2/com/ibm/db2/jcc/
+
+module add \
+  --name=com.ibm.db2 \
+  --dependencies=javax.api,javax.transaction.api \
+  --resources=/entrypoint-wildfly-cli/ext/jcc-11.5.9.0.jar
+
+/subsystem=datasources/jdbc-driver=ibmdb2:add( \
+  driver-name="ibmdb2", \
+  driver-module-name="com.ibm.db2", \
+  driver-class-name="com.ibm.db2.jcc.DB2Driver" \
+)

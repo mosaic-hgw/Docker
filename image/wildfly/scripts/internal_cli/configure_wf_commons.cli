@@ -1,0 +1,120 @@
+# logger for console
+#####################
+#>deprecated-env< CONSOLE_LOG_LEVEL WF_CONSOLE_LOG_LEVEL
+#>available-env< WF_CONSOLE_LOG_LEVEL
+set consoleLogLevel=${CONSOLE_LOG_LEVEL}
+if (outcome == "success") of :resolve-expression(expression=${env.WF_CONSOLE_LOG_LEVEL})
+	set consoleLogLevel=${env.WF_CONSOLE_LOG_LEVEL}
+end-if
+if (result ~= "(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)") of :resolve-expression(expression=$consoleLogLevel)
+	echo \>\>\> set console-log-level to $consoleLogLevel
+	/subsystem=logging/console-handler=CONSOLE:write-attribute(name=level,value=$consoleLogLevel)
+end-if
+#>available-env< WF_CONSOLE_LOG_TO_FILE
+if (result ~= "(?i)(off|false|no|0)") of :resolve-expression(expression=${env.WF_CONSOLE_LOG_TO_FILE})
+	/subsystem=logging/root-logger=ROOT:remove-handler(name="FILE")
+end-if
+
+# enable microprofile-health
+#############################
+echo \>\>\> enable microprofile-health
+if (outcome != "success") of /subsystem=microprofile-health-smallrye:read-resource
+    /extension=org.wildfly.extension.microprofile.health-smallrye:add
+    /subsystem=microprofile-health-smallrye:add
+else
+    echo \<\<\< microprofile-health already exists
+end-if
+
+# Set WSDL address to use incoming request address
+###################################################
+/subsystem=webservices:write-attribute(name=wsdl-host, value=jbossws.undefined.host)
+# Set WSDL scheme to HTTPS (optional)
+# /subsystem=webservices:write-attribute(name=wsdl-uri-scheme, value=https)
+# Set port for WSDL HTTP scheme (optional)
+# /subsystem=webservices:write-attribute(name=wsdl-port, value=8080)
+# Set port for WSDL HTTPS scheme (optional)
+# /subsystem=webservices:write-attribute(name=wsdl-secure-port, value=8443)
+
+# set custom max-post-size
+###########################
+#>deprecated-env< MAX_POST_SIZE WF_MAX_POST_SIZE
+#>available-env< WF_MAX_POST_SIZE
+set temp=${MAX_POST_SIZE}
+if (outcome == "success") of :resolve-expression(expression=${env.WF_MAX_POST_SIZE})
+	set temp=${env.WF_MAX_POST_SIZE}
+end-if
+if (result ~= "[0-9]+") of :resolve-expression(expression=$temp)
+	echo \>\>\> set max-post-size to $temp
+	/subsystem=undertow/server=default-server/ajp-listener=myListener:write-attribute(name=max-post-size,value=$temp)
+	/subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=max-post-size,value=$temp)
+	/subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=max-post-size,value=$temp)
+end-if
+
+# set custom max-parameters
+############################
+#>available-env< WF_MAX_PARAMETERS
+set temp=${env.WF_MAX_PARAMETERS}
+if (result ~= "[0-9]+") of :resolve-expression(expression=$temp)
+	echo \>\>\> set max-parameters to $temp
+	/subsystem=undertow/server=default-server/ajp-listener=myListener:write-attribute(name=max-parameters,value=$temp)
+	/subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=max-parameters,value=$temp)
+	/subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=max-parameters,value=$temp)
+end-if
+
+# set custom max-child-elements
+################################
+#>deprecated-env< MAX_CHILD_ELEMENTS WF_MAX_CHILD_ELEMENTS
+#>available-env< WF_MAX_CHILD_ELEMENTS
+set temp=${MAX_CHILD_ELEMENTS}
+if (outcome == "success") of :resolve-expression(expression=${env.WF_MAX_CHILD_ELEMENTS})
+	set temp=${env.WF_MAX_CHILD_ELEMENTS}
+end-if
+if (result ~= "[0-9]+") of :resolve-expression(expression=$temp)
+	echo \>\>\> set max-child-elements to $temp
+	/system-property=org.apache.cxf.stax.maxChildElements:add(value=$temp)
+end-if
+
+# set custom blocking-timeout
+##############################
+#>available-env< WF_BLOCKING_TIMEOUT
+if (result ~= "[0-9]+") of :resolve-expression(expression=${env.WF_BLOCKING_TIMEOUT})
+    set temp=${env.WF_BLOCKING_TIMEOUT}
+    echo \>\>\> set blocking-timeout to $temp seconds
+    /system-property=jboss.as.management.blocking.timeout:add(value=$temp)
+end-if
+
+# set custom transaction-timeout
+#################################
+#>available-env< WF_TRANSACTION_TIMEOUT
+if (result ~= "[0-9]+") of :resolve-expression(expression=${env.WF_TRANSACTION_TIMEOUT})
+    set temp=${env.WF_TRANSACTION_TIMEOUT}
+    echo \>\>\> set transaction-timeout to $temp seconds
+    /subsystem=transactions/:write-attribute(name=default-timeout,value=$temp)
+end-if
+
+# enable-http2
+###############
+#>deprecated-env< WF_DISABLE_HTTP2 WF_ENABLE_HTTP2
+#>available-env< WF_ENABLE_HTTP2
+set temp=true
+if (result ~= "(?i)(on|true|yes|1)") of :resolve-expression(expression=${env.WF_DISABLE_HTTP2})
+	set temp=false
+end-if
+if (outcome == "success") of :resolve-expression(expression=${env.WF_ENABLE_HTTP2})
+	set temp=${env.WF_ENABLE_HTTP2}
+end-if
+if (result ~= "(?i)(off|false|no|0)") of :resolve-expression(expression=$temp)
+    echo \>\>\> disable http2
+    /subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=enable-http2,value=false)
+    /subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=allow-unescaped-characters-in-url,value=true)
+    /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=enable-http2,value=false)
+    /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=allow-unescaped-characters-in-url,value=true)
+end-if
+
+# Global-Modules
+#################
+echo \>\>\> add global-modules for SOAP-KeyCloak
+/subsystem=ee/:list-add(name=global-modules,value={name=org.apache.cxf.impl,slot=main})
+/subsystem=ee/:list-add(name=global-modules,value={name=org.wildfly.security.elytron-http-oidc,slot=main})
+/subsystem=ee/:list-add(name=global-modules,value={name=io.undertow.servlet,slot=main})
+/subsystem=ee/:list-add(name=global-modules,value={name=io.undertow.core,slot=main})
