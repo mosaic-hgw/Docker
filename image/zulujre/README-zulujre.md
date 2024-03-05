@@ -74,7 +74,7 @@ openjdk version "17.0.9" 2023-10-17 LTS
 ## Current Software-Versions on this Image
 | Date       | Tags                                                                                                                                       | Changes                                         |
 |------------|--------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
-| 2024-03-04 | `21.0.2`, `21`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/java/Dockerfile.jre.zulu))                     | **Debian** 12.5 "bookworm"<br>**Java** 21.0.2   |
+| 2024-03-05 | `21.0.2`, `21`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/java/Dockerfile.jre.zulu))                     | **Debian** 12.5 "bookworm"<br>**Java** 21.0.2   |
 | 2023-12-11 | `21.0.1`                                                                                                                                   | **Debian** 12.4 "bookworm"<br>**Java** 21.0.1   |
 | 2023-12-11 | `17.0.9-1`, `17`                                                                                                                           | **Debian** 12.4 "bookworm"<br>**Java** 17.0.9   |
 | 2023-10-30 | `17.0.9`                                                                                                                                   | **Debian** 12.2 "bookworm"<br>**Java** 17.0.9   |
