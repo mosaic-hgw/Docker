@@ -1,0 +1,104 @@
+FROM debian:stable-slim
+
+# ###license-information-start###
+# The MOSAIC-Project - Debian Stable
+# __
+# Copyright (C) 2009 - ${build.year} Institute for Community Medicine
+# University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+# __
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# ###license-information-end###
+
+MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
+
+# variables
+ARG DATE_YMD="20240305"
+ARG WAIT_FOR_IT_DOWNLOAD_URL="https://raw.githubusercontent.com/vishnubob/wait-for-it/ed77b63706ea721766a62ff22d3a251d8b4a6a30/wait-for-it.sh"
+ARG WAIT_FOR_IT_SHA256="2ea7475e07674e4f6c1093b4ad6b0d8cbbc6f9c65c73902fb70861aa66a6fbc0"
+
+ENV HOME="/opt/mosaic" \
+    USER="mosaic" \
+    \
+    PROCESS_UID="1111" \
+    PROCESS_GID="1111" \
+    MOS_READY_PATH="/opt/mosaic/ready" \
+    MOS_TEMP_PATH="/opt/mosaic/temp" \
+    TZ="Europe/Berlin" \
+    MOS_RUN_MODE="service" \
+    ENTRY_LOGS="/entrypoint-logs" \
+    ENTRY_USAGE="/entrypoint-help-and-usage"
+
+# annotations
+LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
+      org.opencontainers.image.authors="university-medicine greifswald" \
+      org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/debian" \
+      org.opencontainers.image.version="${DATE_YMD}" \
+      org.opencontainers.image.vendor="uni-greifswald.de" \
+      org.opencontainers.image.title="mosaic-debian" \
+      org.opencontainers.image.license="AGPLv3"
+
+COPY ["scripts", "/opt"]
+COPY ["help-and-usage", "${ENTRY_USAGE}/"]
+COPY ["README*.md", "${ENTRY_USAGE}/layer-readme/"]
+RUN echo "> 1. install system-updates" && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    \
+    echo "> 2. install missing packages (curl)" && \
+    apt-get install -y curl && \
+    \
+    echo "> 3. create user and group" && \
+    groupadd --g ${PROCESS_GID} ${USER} && \
+    useradd --no-log-init -m -u ${PROCESS_UID} -g ${PROCESS_GID} -d ${HOME} ${USER} && \
+    chmod 755 ${HOME} && \
+    \
+    echo "> 4. create folders and permissions" && \
+    cd ${HOME} && \
+    mv /opt/*.sh ./ && \
+    cp ${ENTRY_USAGE}/LICENSE.txt ${HOME}/ && \
+    mkdir ${MOS_READY_PATH} ${MOS_TEMP_PATH} ${ENTRY_LOGS} && \
+    chmod go+w ${MOS_READY_PATH} ${ENTRY_LOGS} && \
+    \
+    echo "> 5. download wait-for-it-script" && \
+    (curl -Lfo wait-for-it.sh ${WAIT_FOR_IT_DOWNLOAD_URL} || (>&2 echo "curl -Lfo wait-for-it.sh ${WAIT_FOR_IT_DOWNLOAD_URL}\n" && exit 1)) && \
+    (sha256sum wait-for-it.sh | grep -q ${WAIT_FOR_IT_SHA256} > /dev/null || (>&2 echo "sha256sum failed $(sha256sum wait-for-it.sh)" && exit 1)) && \
+    chmod +x wait-for-it.sh && \
+    \
+    echo "> 6. register bash-scripts" && \
+    ln -s ${HOME}/register.sh /usr/bin/register && \
+    ln -s ${HOME}/versions.sh /usr/bin/versions && \
+    ln -s ${HOME}/entrypoints.sh /usr/bin/entrypoints && \
+    ln -s ${HOME}/help.sh /usr/bin/help && \
+    ln -s ${HOME}/envs.sh /usr/bin/envs && \
+    \
+    echo "> 7. create versions and entrypoints" && \
+    /bin/bash ${HOME}/register.sh \
+      --os-updated \
+      --add-version='Distribution:$(cat /etc/os-release | grep -E "^NAME" | cut -d"\"" -f2 ) $(cat /etc/debian_version)' \
+      --add-entrypoint="ENTRY_LOGS:${ENTRY_LOGS}" \
+      --add-entrypoint="ENTRY_USAGE:${ENTRY_USAGE}" && \
+    \
+    echo "> 8. cleanup" && \
+    apt-get clean && \
+    apt-get autoclean && \
+    apt-get autoremove && \
+    chown ${USER}:${USER} -R ${HOME} ${MOS_READY_PATH} ${ENTRY_LOGS} ${ENTRY_USAGE} && \
+    chmod u+x -R ${HOME}/*.sh && \
+    rm -rf install.log ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
+
+WORKDIR ${HOME}
+USER ${USER}
+
+HEALTHCHECK CMD ["./healthcheck.sh"]
+CMD ["./run.sh"]

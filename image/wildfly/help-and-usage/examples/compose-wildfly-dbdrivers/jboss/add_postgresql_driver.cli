@@ -1,0 +1,12 @@
+# driver-download: https://repo1.maven.org/maven2/org/postgresql/postgresql/
+
+module add \
+  --name=org.postgre \
+  --dependencies=javax.api,javax.transaction.api \
+  --resources=/entrypoint-wildfly-cli/ext/postgresql-42.7.2.jar
+
+/subsystem=datasources/jdbc-driver=postgre:add( \
+  driver-name="postgre", \
+  driver-module-name="org.postgre", \
+  driver-class-name="org.postgresql.Driver" \
+)

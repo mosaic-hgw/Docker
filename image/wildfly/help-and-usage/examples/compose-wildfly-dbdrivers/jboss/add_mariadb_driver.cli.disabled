@@ -1,0 +1,12 @@
+# driver-download: https://repo1.maven.org/maven2/org/mariadb/jdbc/mariadb-java-client/
+
+module add \
+  --name=org.mariadb \
+  --dependencies=javax.api,javax.transaction.api \
+  --resources=/entrypoint-wildfly-cli/ext/mariadb-java-client-3.3.3.jar
+ 
+/subsystem=datasources/jdbc-driver=mariadb:add( \
+  driver-name="mariadb", \
+  driver-module-name="org.mariadb", \
+  driver-class-name="org.mariadb.jdbc.Driver"\
+)

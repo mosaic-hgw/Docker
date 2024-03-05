@@ -1,0 +1,84 @@
+ARG TAG=mosaicgreifswald/debian:latest
+FROM ${TAG}
+
+# ###license-information-start###
+# The MOSAIC-Project
+# __
+# Copyright (C) 2009 - 2024 Institute for Community Medicine
+# University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+# __
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# ###license-information-end###
+
+MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
+
+# variables
+ARG DATE_YMD="20240305"
+ARG JAVA_VERSION="21"
+ARG JAVA_DOWNLOAD_URL="https://cdn.azul.com/zulu/bin/"
+ENV JAVA_HOME="/usr/lib/jvm/zulu" \
+    ENTRY_JAVA_CACERTS="/entrypoint-java-cacerts"
+
+# annotations
+LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
+      org.opencontainers.image.authors="university-medicine greifswald" \
+      org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/jre" \
+      org.opencontainers.image.version="${JAVA_VERSION}-${DATE_YMD}" \
+      org.opencontainers.image.vendor="uni-greifswald.de" \
+      org.opencontainers.image.title="mosaic-jre" \
+      org.opencontainers.image.license="AGPLv3"
+
+# create folders and permissions
+USER root
+COPY ["help-and-usage", "${ENTRY_USAGE}/"]
+COPY ["README*.md", "${ENTRY_USAGE}/layer-readme/"]
+RUN cd ${MOS_TEMP_PATH} && \
+    echo "> 1. install system-updates" && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    \
+    echo "> 2. install zulu-jre" && \
+    DEB_NAME="$(curl -s ${JAVA_DOWNLOAD_URL} | grep -oE "zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre${JAVA_VERSION}\.[0-9\.]+-linux_amd64\.deb" | sort -ruV | head -n1)" && \
+    (curl -Lfo ${DEB_NAME} ${JAVA_DOWNLOAD_URL}${DEB_NAME} || (>&2 echo "curl -Lfo ${DEB_NAME} ${JAVA_DOWNLOAD_URL}${DEB_NAME}\n" && exit 1)) && \
+    apt-get install -y ${MOS_TEMP_PATH}/${DEB_NAME} && \
+    \
+    echo "> 3. register java" && \
+    mkdir -p ${JAVA_HOME}/bin && \
+    mv ${JAVA_HOME}/../zre-${JAVA_VERSION}-amd64 ${JAVA_HOME}${JAVA_VERSION} && \
+    for EXE_PATH in $(find "${JAVA_HOME}${JAVA_VERSION}/bin/" -type f -executable); do \
+      if [ -f ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) ]; then \
+        sed -ie "s-*) .*-*) ${EXE_PATH} \"\$@\" ;;-;/*)/i${JAVA_VERSION}) ${EXE_PATH} \"\$@\" ;;" ${JAVA_HOME}/bin/$(basename ${EXE_PATH}); \
+      else \
+        echo '#!/bin/sh\ncase "${JAVA_VERSION}" in\n'${JAVA_VERSION}') '${EXE_PATH}' "$@" ;;\n*) '${EXE_PATH}' "$@" ;;\nesac' > ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) && \
+        chown ${USER}:${USER} -R ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) && \
+        chmod u+x ${JAVA_HOME}/bin/$(basename ${EXE_PATH}); \
+      fi && \
+      ln -sf ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) /usr/bin/$(basename ${EXE_PATH}); \
+    done && \
+    register --os-updated \
+      --add-version="zulu-jre:\$(${JAVA_HOME}${JAVA_VERSION}/bin/java -version 2>&1 | head -n1 | sed -r 's/^.+\"(.+)\".+$/\1/' | cat) \$([ \"\$(grep -c \"\${JAVA_HOME}\" \${JAVA_HOME}/bin/java)\" -gt 2 ] && [ \"${JAVA_VERSION}\" = \"\${JAVA_VERSION:-\$(cat ${HOME}/default-java-version)}\" ] && echo \"(current)\")" \
+    && \
+    if [ -f "${HOME}/default-java-version" ]; then ENTRY_JAVA_CACERTS="${JAVA_HOME}$(cat ${HOME}/default-java-version)/lib/security/cacerts"; \
+    else register --add-entrypoint="ENTRY_JAVA_CACERTS:${ENTRY_JAVA_CACERTS}"; fi && \
+    echo -n "${JAVA_VERSION}" > ${HOME}/default-java-version && \
+    \
+    echo "> 4. cleanup" && \
+    apt-get clean && \
+    apt-get autoclean && \
+    apt-get autoremove && \
+    chown ${USER}:${USER} -R ${ENTRY_USAGE} && \
+    ln -sf ${JAVA_HOME}${JAVA_VERSION}/lib/security/cacerts ${ENTRY_JAVA_CACERTS} && \
+    rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
+
+USER ${USER}

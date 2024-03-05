@@ -38,9 +38,10 @@ The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does no
 - `external` like `service` but does not restart a ended service nor does it stop the others
 
 ## Relevant Entrypoints
-| Path             | ref. ENV-Variable  | Type   | Purpose                                                                  |
-|------------------|--------------------|--------|--------------------------------------------------------------------------|
-| /entrypoint-logs | ENTRY_LOGS         | folder | All further layers can store their own log files here in subdirectories. |
+| Path                       | ref. ENV-Variable | Type   | Purpose                                                                          |
+|----------------------------|-------------------|--------|----------------------------------------------------------------------------------|
+| /entrypoint-logs           | ENTRY_LOGS        | folder | All further layers can store their own log files here in subdirectories.         |
+| /entrypoint-help-and-usage | ENTRY_USAGE       | folder | Here you will find README-files for each docker-image-layer, including examples. |
 
 ## Usage
 ```shell
@@ -56,12 +57,14 @@ The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does no
 # "entrypoints" lists all registered entrypoints.
 > docker run --rm mosaicgreifswald/debian:latest entrypoints
   ENTRY_LOGS                 : /entrypoint-logs
+  ENTRY_USAGE                : /entrypoint-help-and-usage
 ```
 
 ## Current Software-Versions on this Image
 | Date       | Tags                                                                                                                                           | Changes                    |
 |------------|------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------|
-| 2023-12-11 | `12.4`, `12`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/base/Dockerfile.base.deb))                           | **Debian** 12.4 "bookworm" |
+| 2024-03-05 | `12.5`, `12`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/base/Dockerfile.base.deb))                           | **Debian** 12.5 "bookworm" |
+| 2023-12-11 | `12.4` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5981092ec91894fdcdc6961a79b3b45b2e141b1c/image/base/Dockerfile.base.deb))       | **Debian** 12.4 "bookworm" |
 | 2023-10-30 | `12.2`                                                                                                                                         | **Debian** 12.2 "bookworm" |
 | 2023-09-28 | `12.1`                                                                                                                                         | **Debian** 12.1 "bookworm" |
 | 2023-07-13 | `12.0`                                                                                                                                         | **Debian** 12.0 "bookworm" |

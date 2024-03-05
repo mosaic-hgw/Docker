@@ -30,6 +30,10 @@ There are 3 strategies built into this docker image.
 | Debugging  | WF_DEBUG            | true \| false                            | false         | set `true` to enable debug-mode in wildfly                                                        |
 | Debugging  | DEBUG_PORT          | \<IP\>:\<PORT\>                          | *:8787        | for debugging you can change the ip:port                                                          |
 
+```shell
+# more with "envs"
+> docker run --rm mosaicgreifswald/wildfly envs
+```
 
 ## Relevant Entrypoints
 | Path                            | ref. ENV-Variable     | Type   | Purpose                                                                                                                            |
@@ -41,15 +45,19 @@ There are 3 strategies built into this docker image.
 | /entrypoint-wildfly-addins      | ENTRY_WILDFLY_ADDINS  | folder | to import additional files for deployments (read-only access)                                                                      |
 | /entrypoint-wildfly-logs        | ENTRY_WILDFLY_LOGS    | folder | to export all available log-files (read/write access)                                                                              |
 
+```shell
+# similar with "entrypoints"
+> docker run --rm mosaicgreifswald/wildfly entrypoints
+```
 
 ## Usage
 ```shell
 # build wildfly-image (required java-image mosaicgreifswald/java:latest)
 > cd mosaic-hgw/Docker/image/appserver
-> docker build --tag="mosaicgreifswald/wildfly:latest" --file="Dockerfile.app.wf26" .
+> docker build --tag="mosaicgreifswald/wildfly" --file="Dockerfile.app.wf26" .
 
 # "versions" shows all installed tools and components, with their versions.
-> docker run --rm mosaicgreifswald/wildfly:latest versions
+> docker run --rm mosaicgreifswald/wildfly versions
   last updated               : 2023-12-19 14:56:32
   Distribution               : Debian GNU/Linux 12.4
   zulu-jre                   : 17.0.9
@@ -58,21 +66,12 @@ There are 3 strategies built into this docker image.
   EclipseLink                : 2.7.14
   KeyCloak-Client            : 19.0.2
 
-# "entrypoints" lists all registered entrypoints.
-> docker run --rm mosaicgreifswald/wildfly:latest entrypoints
-  ENTRY_LOGS                 : /entrypoint-logs
-  ENTRY_JAVA_CACERTS         : /entrypoint-java-cacerts
-  ENTRY_WILDFLY_CLI          : /entrypoint-wildfly-cli
-  ENTRY_WILDFLY_DEPLOYS      : /entrypoint-wildfly-deployments
-  ENTRY_WILDFLY_ADDINS       : /entrypoint-wildfly-addins
-  ENTRY_WILDFLY_LOGS         : /entrypoint-wildfly-logs
-
 # simple start with your deployments and without admin-user
 > docker run --rm \
     -e WF_NO_ADMIN=true \
     -p 8080:8080 \
     -v /path/to/your/deployments:/entrypoint-wildfly-deployments \
-    mosaicgreifswald/wildfly:latest
+    mosaicgreifswald/wildfly
 
 # if your deployment folder is write-protected, you can explicitly switch off the markerfiles
 > docker run --rm \
@@ -83,7 +82,7 @@ There are 3 strategies built into this docker image.
     -p 9990:9990 \
     -v /path/to/your/cli-files:/entrypoint-wildfly-cli \
     -v /path/to/readonly/deployments:/entrypoint-wildfly-deployments \
-    mosaicgreifswald/wildfly:latest
+    mosaicgreifswald/wildfly
 ```
 
 
@@ -170,13 +169,48 @@ All relevant adjustments can be written into a CLI-file and passed to WildFly.
   run-batch
   ```
 
+## Additional files
+```shell
+# see all additional files
+> docker run --rm -it mosaicgreifswald/wildfly bash -c "cd /entrypoint-help-and-usage; ls -lah; bash"
+
+# or copy all to local host
+> docker run --rm -v "$(pwd)":"$(pwd)" mosaicgreifswald/wildfly bash -c "cp -R /entrypoint-help-and-usage $(pwd)/help-and-usage"
+```
+You will receive the following directory-tree and can start playing immediately:
+```
+|___layer-readme/
+| |___README-debian.md
+  |___README-wildfly.md
+| |___README-zulujre.md
+|___examples/
+  |___compose-wildfly-dbdriver/
+  | |___jboss/
+  | | |___add_x_driver.cli
+  | |___docker-compose.yml
+  |___compose-wildfly-empty/
+  | |___addins/
+  | |___envs/
+  | | |___wf_commons.env
+  | |___jboss/
+  | |___logs/
+  | |___sqls/
+  | |___docker-compose.yml
+  |___pure-envs/
+    |___debian.env
+    |___wf_commons.env
+    |___zulujre.env
+```
+
+
 ## Current Software-Versions on this Image
-| Date                               | Tags                                                                                                                                              | Changes                                                                                                                                                            |
-|------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 2023-12-11<br><br><br><br>         | `30-20231211`, `30`, `preview` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf30))<br><br><br><br> | **Debian** 12.4 "bookworm"<br>**openJRE** 21.0.1<br>**WildFly** 30.0.1.Final<br>**EclipseLink** 4.0.2                                                              |
-| 2023-10-30<br><br><br><br><br>     | `29`<br><br><br><br><br>                                                                                                                          | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9<br>**WildFly** 29.0.1.Final<br>**EclipseLink** 4.0.2<br>**KeyCloak-Client** deleted                               |
-| 2023-12-19<br><br>                 | `26-20231219`, `26`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf26))<br><br>          | **Debian** 12.4 "bookworm"<br>**EclipseLink** 2.7.14                                                                                                               |
-| 2023-10-30<br><br>                 | `26-20231030`<br><br>                                                                                                                             | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9                                                                                                                   |
-| 2023-07-13                         | `26-20230713`                                                                                                                                     | **Debian** 12.0 "bookworm"                                                                                                                                         |
-| 2023-05-23                         | `26-20230523`                                                                                                                                     | **Debian** 11.7 "bullseye"                                                                                                                                         |
-| 2023-04-25<br><br><br><br><br><br> | `26-20230425`<br><br><br><br><br><br>                                                                                                             | **Debian** 11.6 "bullseye"<br>**ZuluJRE** 17.0.7<br>**WildFly** 26.1.3.Final<br>**MySQL-Connector** 8.0.33<br>**EclipseLink** 2.7.12<br>**KeyCloak-Client** 19.0.2 |
+| Date                               | Tags                                                                                                                                                  | Changes                                                                                                                                                            |
+|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 2024-03-05<br><br><br><br><br>     | `31-20240305`, `31`, `preview` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf31))<br><br><br><br><br> | **Debian** 12.5 "bookworm"<br>**openJRE** 21.0.2<br>**WildFly** 31.0.1.Final<br>**MySQL-Connector** 8.3.0<br>**EclipseLink** 4.0.2                                 |
+| 2024-01-11<br><br><br><br><br>     | `30` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf30))<br><br><br><br><br>                           | **Debian** 12.4 "bookworm"<br>**openJRE** 21.0.1<br>**WildFly** 30.0.1.Final<br>**MySQL-Connector** 8.2.0<br>**EclipseLink** 4.0.2                                 |
+| 2023-10-30<br><br><br><br><br>     | `29`<br><br><br><br><br>                                                                                                                              | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9<br>**WildFly** 29.0.1.Final<br>**EclipseLink** 4.0.2<br>**KeyCloak-Client** deleted                               |
+| 2023-12-19<br><br>                 | `26-20231219`, `26`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf26))<br><br>              | **Debian** 12.4 "bookworm"<br>**EclipseLink** 2.7.14                                                                                                               |
+| 2023-10-30<br><br>                 | `26-20231030`<br><br>                                                                                                                                 | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9                                                                                                                   |
+| 2023-07-13                         | `26-20230713`                                                                                                                                         | **Debian** 12.0 "bookworm"                                                                                                                                         |
+| 2023-05-23                         | `26-20230523`                                                                                                                                         | **Debian** 11.7 "bullseye"                                                                                                                                         |
+| 2023-04-25<br><br><br><br><br><br> | `26-20230425`<br><br><br><br><br><br>                                                                                                                 | **Debian** 11.6 "bullseye"<br>**ZuluJRE** 17.0.7<br>**WildFly** 26.1.3.Final<br>**MySQL-Connector** 8.0.33<br>**EclipseLink** 2.7.12<br>**KeyCloak-Client** 19.0.2 |

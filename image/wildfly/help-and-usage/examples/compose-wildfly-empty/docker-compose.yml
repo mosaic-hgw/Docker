@@ -1,0 +1,29 @@
+version: '3'
+services:
+
+  mysql:
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: top-secret
+    volumes:
+      - ./sqls:/docker-entrypoint-initdb.d
+
+  wildfly:
+    image: mosaicgreifswald/wildfly
+    ports:
+      - 8080:8080
+      - 9990:9990
+    depends_on:
+      - mysql
+    env_file:
+      - ./envs/wf_commons.env
+    environment:
+      WF_ADMIN_PASS: top-secret
+    volumes:
+#      - ./addins:/entrypoint-wildfly-addins
+      - ./deployments:/entrypoint-wildfly-deployments
+      - ./jboss:/entrypoint-wildfly-cli
+      - ./logs:/entrypoint-wildfly-logs
+#      - ./cacerts:/entrypoint-java-cacerts
+    entrypoint: /bin/bash
+    command: -c "./wait-for-it.sh mysql:3306 -t 60 && ./run.sh"
