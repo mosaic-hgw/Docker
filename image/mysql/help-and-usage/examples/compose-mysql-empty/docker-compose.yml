@@ -1,0 +1,16 @@
+version: '3'
+services:
+
+  mysql:
+    image: mosaicgreifswald/mysql
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: top-secret
+    env_file:
+      - ./envs/wf_commons.env
+    volumes:
+      - ./db-data:/entrypoint-mysql-data
+      - ./sqls:/entrypoint-mysql-sqls
+      - ./my.cnf:/entrypoint-mysql-my-cnf
+      - ./logs:/entrypoint-mysql-logs

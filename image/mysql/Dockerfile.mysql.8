@@ -1,0 +1,102 @@
+ARG TAG=mosaicgreifswald/debian:latest
+FROM ${TAG}
+
+# ###license-information-start###
+# The MOSAIC-Project - MySQL-Server
+# __
+# Copyright (C) 2009 - 2024 Institute for Community Medicine
+# University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+# __
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# ###license-information-end###
+
+MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
+
+# variables
+ARG DATE_YMD="20240305"
+ARG MYSQL_VERSION="8.3.0"
+ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com//Downloads/MySQL-8.3/mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64-minimal.tar.xz"
+ARG MYSQL_SHA256="9d6181edea1b80a2edf3e15247b87a35f2b0d25fd927d993d9162678eac6160a"
+
+ENV MYSQL_HOME="${HOME}/mysql" \
+    MYSQL_ROOT_PASSWORD="root" \
+    MYSQL_OPTS="" \
+    \
+    ENTRY_MYSQL_DATADIR="/entrypoint-mysql-data" \
+    ENTRY_MYSQL_SQLS="/entrypoint-mysql-sqls" \
+    ENTRY_MYSQL_MY_CNF="/entrypoint-mysql-my-cnf" \
+    ENTRY_MYSQL_SOCKET="/entrypoint-mysql-socket" \
+    ENTRY_MYSQL_LOGS="/entrypoint-mysql-logs"
+
+# annotations
+LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
+      org.opencontainers.image.authors="university-medicine greifswald" \
+      org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/mysql" \
+      org.opencontainers.image.version="8-${DATE_YMD}" \
+      org.opencontainers.image.vendor="uni-greifswald.de" \
+      org.opencontainers.image.title="mosaic-mysql" \
+      org.opencontainers.image.license="AGPLv3"
+
+# create image
+USER root
+COPY ["scripts", "${MYSQL_HOME}"]
+COPY ["help-and-usage", "${ENTRY_USAGE}/"]
+COPY ["README*.md", "${ENTRY_USAGE}/layer-readme/"]
+RUN cd ${MOS_TEMP_PATH} && \
+    echo "> 1. install system-updates" && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    \
+    echo "> 2. install xz-utils and libraries" && \
+    apt-get install -y xz-utils libaio1 libnuma1 libncurses5 && \
+    mkdir ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_SOCKET} ${ENTRY_LOGS}/mysql && \
+    \
+    echo "> 3. mysql-server" && \
+    (curl -Lfo mysql.tar ${MYSQL_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mysql.tar ${MYSQL_DOWNLOAD_URL}\n" && exit 1)) && \
+    (sha256sum mysql.tar | grep ${MYSQL_SHA256} > /dev/null || (>&2 echo "sha256sum failed $(sha256sum mysql.tar)" && exit 1)) && \
+    tar xf mysql.tar && \
+    cp -R mysql-*/* ${MYSQL_HOME}/ && \
+    echo "export LD_LIBRARY_PATH=/opt/mysql/lib:/lib:/lib64:/usr/lib" > ${MYSQL_HOME}/library_path.sh && \
+    chmod +x ${MYSQL_HOME}/bin/* && \
+    echo "export PATH=${MYSQL_HOME}/bin:${PATH}" > /etc/profile.d/mysql.sh && \
+    \
+    echo "> 4. register mysql" && \
+    register \
+        --os-updated \
+        --add-version="MySQL-Server:\$(${MYSQL_HOME}/bin/mysqld -V 2>/dev/null | sed -r 's/^.+Ver ([0-9\.]+) .+$/\1/' | cat)" \
+        --add-entrypoint="ENTRY_MYSQL_DATADIR:${ENTRY_MYSQL_DATADIR}" \
+        --add-entrypoint="ENTRY_MYSQL_SQLS:${ENTRY_MYSQL_SQLS}" \
+        --add-entrypoint="ENTRY_MYSQL_MY_CNF:${ENTRY_MYSQL_MY_CNF}" \
+        --add-entrypoint="ENTRY_MYSQL_SOCKET:${ENTRY_MYSQL_SOCKET}" \
+        --add-entrypoint="ENTRY_MYSQL_LOGS:${ENTRY_MYSQL_LOGS}" \
+        --add-healthcheck-script="${MYSQL_HOME}/healthcheck_mysql.sh" \
+        --add-run-script="10:service:${MYSQL_HOME}/run_mysql.sh:${MYSQL_HOME}/mysql_started.sh" && \
+    \
+    echo "> 5. cleanup" && \
+    apt-get remove --purge --auto-remove -y xz-utils && \
+    apt-get clean && \
+    apt-get autoclean && \
+    apt-get autoremove && \
+    ln -s ${MYSQL_HOME}/my.cnf ${ENTRY_MYSQL_MY_CNF} && \
+    ln -s ${ENTRY_LOGS}/mysql ${ENTRY_MYSQL_LOGS} && \
+    ln -s ${MYSQL_HOME}/bin/* /usr/bin/ && \
+    chown ${USER}.${USER} -R ${HOME} ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_SOCKET} ${ENTRY_LOGS} ${ENTRY_MYSQL_MY_CNF} ${ENTRY_MYSQL_LOGS} ${ENTRY_USAGE} && \
+    chmod u+x -R ${HOME}/**/*.sh && \
+    chmod 644 ${MYSQL_HOME}/my.cnf && \
+    rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
+
+USER ${USER}
+
+# ports
+EXPOSE 3306
