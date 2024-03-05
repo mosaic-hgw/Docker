@@ -2,14 +2,14 @@
 
 ## Splitting Mosaic images into different layers
 ```
-base-image (debian:12)
-  |___db-layer (mysql:8, ...)
-  |___java-layer (zulujre:17, 21, ...)
-    |___app-layer (wildfly:26, 31, ...)
-    | |___db-layer (wildfly-db:31, ..)
-    | | |___tool-layer (gpas-db:2024, ..)
-    | |___tool-layer (gpas:2024, ..)
-    |___test-layer (jmeter:5)
+──┬─ base-image (debian:12)
+  ├─── db-layer (mysql:8, ...)
+  └─┬─ java-layer (zulujre:17, 21, ...)
+    ├─┬─ app-layer (wildfly:26, 31, ...)
+    │ ├─┬─ db-layer (wildfly-db:31, ..)
+    │ │ └─── tool-layer (gpas-db:2024, ..)
+    │ └─── tool-layer (gpas:2024, ..)
+    └─── test-layer (jmeter:5)
 ```
 
 ## There are certain dependencies:
