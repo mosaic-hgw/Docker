@@ -1,0 +1,19 @@
+version: '3'
+services:
+  wildfly:
+    image: mosaicgreifswald/wildfly
+    environment:
+      WF_ADMIN_USER: top-member
+      WF_ADMIN_PASS: top-secret
+  jmeter:
+    image: mosaicgreifswald/jmeter
+    depends_on:
+      - wildfly
+    env_file:
+      - envs/jmeter.env
+    volumes:
+      - ./jmeter-tests:/entrypoint-jmeter-testfiles
+      - ./jmeter-props:/entrypoint-jmeter-properties
+      - ./logs:/entrypoint-jmeter-logs
+    entrypoint: /bin/bash
+    command: -c "./wait-for-it.sh wildfly:9990 -t 60 && sleep 5 && ./run.sh"

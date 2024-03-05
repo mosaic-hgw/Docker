@@ -1,0 +1,169 @@
+ARG TAG=mosaicgreifswald/zulujre:latest
+FROM ${TAG}
+
+# ###license-information-start###
+# The MOSAIC-Project - Apache jMeter with many plugins
+# __
+# Copyright (C) 2009 - 2024 Institute for Community Medicine
+# University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+# __
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# ###license-information-end###
+
+MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
+
+# variables
+ARG DATE_YMD="20240305"
+ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
+ARG SKIP_VULNERABILITIES_FIX="false"
+
+ARG JMETER_VERSION="5.6.3"
+ARG JMETER_DOWNLOAD_URL="https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.zip"
+ARG JMETER_SHA512="387fadca903ee0aa30e3f2115fdfedb3898b102e6b9fe7cc3942703094bd2e65b235df2b0c6d0d3248e74c9a7950a36e42625fd74425368342c12e40b0163076"
+
+ARG JMETER_PLUGINS_VERSION="1.4.0"
+ARG JMETER_PLUGINS_DOWNLOAD_URL="http://jmeter-plugins.org/downloads/file/JMeterPlugins-Standard-${JMETER_PLUGINS_VERSION}.zip"
+ARG JMETER_PLUGINS_SHA256="3f740bb9b9a7120ed72548071cd46a5f92929e1ab196acc1b2548549090a2148"
+
+ARG JAVA_JSON_VERSION="20240303"
+ARG JAVA_JSON_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/json/json/${JAVA_JSON_VERSION}/json-${JAVA_JSON_VERSION}.jar"
+ARG JAVA_JSON_SHA256="3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed"
+
+ARG MYSQL_CONNECTOR_VERSION="8.3.0"
+ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
+ARG MYSQL_CONNECTOR_SHA256="94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295"
+
+ARG PROMETHEUS_PLUGIN_VERSION="0.7.1"
+ARG PROMETHEUS_PLUGIN_DOWNLOAD_URL="https://github.com/johrstrom/jmeter-prometheus-plugin/releases/download/${PROMETHEUS_PLUGIN_VERSION}/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar"
+ARG PROMETHEUS_PLUGIN_SHA256="597f38755cd0b3d5c1837c30fd377144387ddea56bd4d16deb1d3bc05b11d370"
+
+ARG JMETER_PLUGINS_PATH="${HOME}/jmeter/lib"
+
+ENV JMETER_HOME="${HOME}/jmeter" \
+    JMETER_LOGS="${ENTRY_LOGS}/jmeter" \
+    JMETER_LOG_TO_FILE="FALSE" \
+    JMETER_LOG_LEVEL="INFO" \
+    \
+    ENTRY_JMETER_TESTS="/entrypoint-jmeter-testfiles" \
+    ENTRY_JMETER_PROPERTIES="/entrypoint-jmeter-properties" \
+    ENTRY_JMETER_LOGS="/entrypoint-jmeter-logs" \
+    \
+    MOS_RUN_MODE="action"
+
+# annotations
+LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
+      org.opencontainers.image.authors="university-medicine greifswald" \
+      org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/jmeter" \
+      org.opencontainers.image.version="${JMETER_VERSION}-${DATE_YMD}" \
+      org.opencontainers.image.vendor="uni-greifswald.de" \
+      org.opencontainers.image.title="mosaic-jmeter" \
+      org.opencontainers.image.license="AGPLv3"
+
+# install needed packages and create user
+USER root
+COPY ["scripts", "${JMETER_HOME}"]
+COPY ["help-and-usage", "${ENTRY_USAGE}/"]
+COPY ["README*.md", "${ENTRY_USAGE}/layer-readme/"]
+RUN cd ${MOS_TEMP_PATH} && \
+    echo "> 1. install system-updates" && \
+    apt-get update && \
+    apt-get upgrade -y && \
+    \
+    echo "> 2. install missing packages (curl, unzip)" && \
+    apt-get install -y unzip && \
+    \
+    echo "> 3. create folders and permissions" && \
+    mkdir -p ${ENTRY_JMETER_TESTS} ${ENTRY_JMETER_PROPERTIES} ${JMETER_LOGS} && \
+    chmod go+w ${ENTRY_JMETER_TESTS} ${ENTRY_JMETER_PROPERTIES} ${JMETER_LOGS} && \
+    chown -R ${USER}:${USER} ${ENTRY_JMETER_TESTS} ${ENTRY_JMETER_PROPERTIES} ${JMETER_LOGS} && \
+    \
+    echo "> 4. apache-jmeter" && \
+    (curl -LfSo apache-jmeter.zip ${JMETER_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -LfSo apache-jmeter.zip ${JMETER_DOWNLOAD_URL}" && echo && exit 1)) && \
+    (sha512sum apache-jmeter.zip | grep -q ${JMETER_SHA512} || (>&2 echo "sha512sum failed $(sha512sum apache-jmeter.zip)" && exit 1)) && \
+    unzip -q apache-jmeter.zip && \
+    cp -R apache-jmeter-${JMETER_VERSION}/* ${JMETER_HOME}/ && \
+    \
+    echo "> 5. jmeter-plugins" && \
+    (curl -LfSo JMeterPlugins-Standard.zip ${JMETER_PLUGINS_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -LfSo JMeterPlugins-Standard.zip ${JMETER_PLUGINS_DOWNLOAD_URL}" && echo && exit 1)) && \
+    (sha256sum JMeterPlugins-Standard.zip | grep ${JMETER_PLUGINS_SHA256} || (>&2 echo "sha256sum failed $(sha256sum JMeterPlugins-Standard.zip)" && exit 1)) && \
+    unzip -oq JMeterPlugins-Standard.zip -d ${JMETER_HOME} && \
+    \
+    echo "> 6. org.json as jmeter-plugin" && \
+    (curl -LfSo ${JMETER_PLUGINS_PATH}/json-${JAVA_JSON_VERSION}.jar ${JAVA_JSON_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -LfSo ${JMETER_PLUGINS_PATH}/json-${JAVA_JSON_VERSION}.jar ${JAVA_JSON_DOWNLOAD_URL}" && echo && exit 1)) && \
+    (sha256sum ${JMETER_PLUGINS_PATH}/json-${JAVA_JSON_VERSION}.jar | grep ${JAVA_JSON_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${JMETER_PLUGINS_PATH}/json-${JAVA_JSON_VERSION}.jar)" && exit 1)) && \
+    \
+    echo "> 7. prometheus as jmeter-plugin" && \
+    (curl -LfSo ${JMETER_PLUGINS_PATH}/ext/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar ${PROMETHEUS_PLUGIN_DOWNLOAD_URL} 2>&1 || (>&2 /bin/echo -e "\ncurl -LfSo ${JMETER_PLUGINS_PATH}/ext/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar ${PROMETHEUS_PLUGIN_DOWNLOAD_URL}" && echo && exit 1)) && \
+    (sha256sum ${JMETER_PLUGINS_PATH}/ext/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar | grep ${PROMETHEUS_PLUGIN_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${JMETER_PLUGINS_PATH}/ext/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar)" && exit 1)) && \
+    \
+    echo "> 8. mysql-connector as jmeter-plugin" && \
+    (curl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
+    tar xf mysql-connector-java.tar.gz && \
+    mv mysql-connector-j-*/mysql*jar ${JMETER_PLUGINS_PATH}/mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar && \
+    (sha256sum ${JMETER_PLUGINS_PATH}/mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar | grep ${MYSQL_CONNECTOR_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${JMETER_PLUGINS_PATH}/mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar)" && exit 1)) && \
+    \
+	echo -n "> 9. update vulnerable java-libraries" && \
+    ([ "${SKIP_VULNERABILITIES_FIX}" = "true" ] && echo " (skipped)" || (echo && \
+    I=0 && ( \
+        # format: base-download-url jar-base-name jar-new-version(optional) \
+        echo "${MAVEN_REPOSITORY}/com/jayway/jsonpath/json-path json-path 2.9.0"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/xmlgraphics/batik-bridge batik-bridge 1.17"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/xmlgraphics/batik-script batik-script 1.17"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/xmlgraphics/batik-transcoder batik-transcoder 1.17"; \
+    ) | while read -r URL NAME VERSION; do UPDATED="false" && \
+       I=`expr $I + 1` && OLD_JARS=$(find /opt/ -type f -name "${NAME}-[0-9]*.*ar") && \
+       if [ "x${OLD_JARS}" = "x" ]; then echo "  > $I. ${NAME} not found" && continue; fi && \
+       for OLD_JAR in ${OLD_JARS}; do \
+           if [ "x" = "x${VERSION}" ]; then \
+               VERSION=$(curl -LfSs ${URL} | grep -E ">[0-9]\.[-a-zA-Z0-9\.]+/<" | sort -Vuk2 | tail -n1 | sed -r "s/^.+>([0-9]\.[-a-zA-Z0-9\.]+).+$/\1/"); \
+           fi && \
+           echo -n ">> $I. ${OLD_JAR} > ${VERSION} > " && \
+           OLD_VERSION=$(echo ${OLD_JAR} | rev | cut -d'-' -f1 | rev | sed 's/.jar//') && \
+           if [ "${OLD_VERSION}" = "${VERSION}" ]; then echo "same version" && continue; fi && \
+           JAR_FILE="${NAME}-${VERSION}.jar" && \
+           echo curl -Lfso $(dirname "${OLD_JAR}")/${JAR_FILE} "${URL}/${VERSION}/${JAR_FILE}" && \
+           curl -Lfso $(dirname "${OLD_JAR}")/${JAR_FILE} "${URL}/${VERSION}/${JAR_FILE}" && \
+           rm -f ${OLD_JAR} && \
+           UPDATED="true" && echo "ok" || echo "failed"; \
+       done ; \
+       ([ "true" = "${UPDATED}" ] || echo "        nothing to update for ${NAME}") ; \
+    done)) && \
+    \
+    echo "> 10. register jmeter" && \
+    register \
+      --os-updated \
+      --add-version="jMeter:\$(${JMETER_HOME}/bin/jmeter -v 2>/dev/null | grep -oE '[0-9\.]+\.[0-9 r]+' | cat)" \
+      --add-version="jMeter-Plugins:${JMETER_PLUGINS_VERSION}" \
+      --add-version="java-json:${JAVA_JSON_VERSION}" \
+      --add-version="jmeter-prometheus-plugin:${PROMETHEUS_PLUGIN_VERSION}" \
+      --add-entrypoint="ENTRY_JMETER_TESTS:${ENTRY_JMETER_TESTS}" \
+      --add-entrypoint="ENTRY_JMETER_PROPERTIES:${ENTRY_JMETER_PROPERTIES}" \
+      --add-entrypoint="ENTRY_JMETER_LOGS:${ENTRY_JMETER_LOGS}" \
+      --add-run-script="30:action:${JMETER_HOME}/run_jmeter.sh" && \
+    \
+    echo "> 10. cleanup" && \
+    apt-get remove --purge --auto-remove -y unzip && \
+    apt-get clean && \
+    apt-get autoclean && \
+    apt-get autoremove && \
+    ln -s ${JMETER_LOGS} ${ENTRY_JMETER_LOGS} && \
+    ln -s ${JMETER_HOME}/bin/jmeter /usr/bin/jmeter && \
+    chown ${USER}:${USER} -R ${HOME} ${ENTRY_LOGS} ${ENTRY_JMETER_LOGS} && \
+    chmod u+x ${HOME}/**/*.sh && \
+    rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/* ${HOME}/jmeter.log \
+
+USER ${USER}
+
+# ports
+EXPOSE 9270
