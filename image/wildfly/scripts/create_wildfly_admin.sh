@@ -15,7 +15,7 @@ if [ ! -f "${MOS_READY_PATH}/admin.created" ]; then
         else
             echoSuc "  Password: ***known***"
         fi
-        ${WILDFLY_HOME}/bin/add-user.sh ${WF_ADMIN_USER} ${WF_ADMIN_PASS} > ${ENTRY_WILDFLY_LOGS}/create_admin.log
+        ${WILDFLY_HOME}/bin/add-user.sh ${WF_ADMIN_USER} ${WF_ADMIN_PASS}
     else
         echoInfo "You can NOT configure this WildFly-Server"
         echoInfo "because no admin-user was created."
