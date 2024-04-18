@@ -1,17 +1,39 @@
 # logger for console
 #####################
-#>deprecated-env< CONSOLE_LOG_LEVEL WF_CONSOLE_LOG_LEVEL
-#>available-env< WF_CONSOLE_LOG_LEVEL
-set consoleLogLevel=${CONSOLE_LOG_LEVEL}
+#>deprecated-env< CONSOLE_LOG_LEVEL WF_SYSTEM_LOG_LEVEL
+set logLevel=${CONSOLE_LOG_LEVEL}
+#>deprecated-env< WF_CONSOLE_LOG_LEVEL WF_SYSTEM_LOG_LEVEL
 if (outcome == "success") of :resolve-expression(expression=${env.WF_CONSOLE_LOG_LEVEL})
-	set consoleLogLevel=${env.WF_CONSOLE_LOG_LEVEL}
+	set logLevel=${env.WF_CONSOLE_LOG_LEVEL}
 end-if
-if (result ~= "(TRACE|DEBUG|INFO|WARN|ERROR|FATAL)") of :resolve-expression(expression=$consoleLogLevel)
-	echo \>\>\> set console-log-level to $consoleLogLevel
-	/subsystem=logging/console-handler=CONSOLE:write-attribute(name=level,value=$consoleLogLevel)
+#>available-env< WF_SYSTEM_LOG_LEVEL INFO
+if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSTEM_LOG_LEVEL})
+	set logLevel=${env.WF_SYSTEM_LOG_LEVEL}
 end-if
-#>available-env< WF_CONSOLE_LOG_TO_FILE
-if (result ~= "(?i)(off|false|no|0)") of :resolve-expression(expression=${env.WF_CONSOLE_LOG_TO_FILE})
+if (result ~= "(?i)(trace|debug|info|warn|error|fatal)") of :resolve-expression(expression=$logLevel)
+	echo \>\>\> set system-logger to level $logLevel
+	/subsystem=logging/console-handler=CONSOLE:write-attribute(name=level,value=$logLevel)
+	/subsystem=logging/root-logger=ROOT:write-attribute(name=level,value=$logLevel)
+end-if
+
+#>deprecated-env< WF_CONSOLE_LOG_TO_FILE WF_SYSTEM_LOG_TO
+if (result ~= "(?i)(on|true|yes|1)") of :resolve-expression(expression=${env.WF_CONSOLE_LOG_TO_FILE})
+    set logTo="file"
+else
+    set logTo="console"
+end-if
+#>available-env< WF_SYSTEM_LOG_TO CONSOLE
+if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSTEM_LOG_TO})
+	set logTo=${env.WF_SYSTEM_LOG_TO}
+end-if
+if (result ~= "(?i).*console.*") of :resolve-expression(expression=$logTo)
+    echo \>\>\> add system-logger to console
+else
+	/subsystem=logging/root-logger=ROOT:remove-handler(name="CONSOLE")
+end-if
+if (result ~= "(?i).*file.*") of :resolve-expression(expression=$logTo)
+    echo \>\>\> add system-logger as separate file (system.log)
+else
 	/subsystem=logging/root-logger=ROOT:remove-handler(name="FILE")
 end-if
 
@@ -38,7 +60,7 @@ end-if
 # set custom max-post-size
 ###########################
 #>deprecated-env< MAX_POST_SIZE WF_MAX_POST_SIZE
-#>available-env< WF_MAX_POST_SIZE
+#>available-env< WF_MAX_POST_SIZE 10485760
 set temp=${MAX_POST_SIZE}
 if (outcome == "success") of :resolve-expression(expression=${env.WF_MAX_POST_SIZE})
 	set temp=${env.WF_MAX_POST_SIZE}
@@ -52,7 +74,7 @@ end-if
 
 # set custom max-parameters
 ############################
-#>available-env< WF_MAX_PARAMETERS
+#>available-env< WF_MAX_PARAMETERS 1000
 set temp=${env.WF_MAX_PARAMETERS}
 if (result ~= "[0-9]+") of :resolve-expression(expression=$temp)
 	echo \>\>\> set max-parameters to $temp
@@ -64,7 +86,7 @@ end-if
 # set custom max-child-elements
 ################################
 #>deprecated-env< MAX_CHILD_ELEMENTS WF_MAX_CHILD_ELEMENTS
-#>available-env< WF_MAX_CHILD_ELEMENTS
+#>available-env< WF_MAX_CHILD_ELEMENTS 50000
 set temp=${MAX_CHILD_ELEMENTS}
 if (outcome == "success") of :resolve-expression(expression=${env.WF_MAX_CHILD_ELEMENTS})
 	set temp=${env.WF_MAX_CHILD_ELEMENTS}
@@ -76,7 +98,7 @@ end-if
 
 # set custom blocking-timeout
 ##############################
-#>available-env< WF_BLOCKING_TIMEOUT
+#>available-env< WF_BLOCKING_TIMEOUT 300
 if (result ~= "[0-9]+") of :resolve-expression(expression=${env.WF_BLOCKING_TIMEOUT})
     set temp=${env.WF_BLOCKING_TIMEOUT}
     echo \>\>\> set blocking-timeout to $temp seconds
@@ -85,7 +107,7 @@ end-if
 
 # set custom transaction-timeout
 #################################
-#>available-env< WF_TRANSACTION_TIMEOUT
+#>available-env< WF_TRANSACTION_TIMEOUT 300
 if (result ~= "[0-9]+") of :resolve-expression(expression=${env.WF_TRANSACTION_TIMEOUT})
     set temp=${env.WF_TRANSACTION_TIMEOUT}
     echo \>\>\> set transaction-timeout to $temp seconds
@@ -95,7 +117,7 @@ end-if
 # enable-http2
 ###############
 #>deprecated-env< WF_DISABLE_HTTP2 WF_ENABLE_HTTP2
-#>available-env< WF_ENABLE_HTTP2
+#>available-env< WF_ENABLE_HTTP2 TRUE
 set temp=true
 if (result ~= "(?i)(on|true|yes|1)") of :resolve-expression(expression=${env.WF_DISABLE_HTTP2})
 	set temp=false
