@@ -61,5 +61,5 @@ fi
 
 rm -f ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/current/*
 
-WF_OPTS="-Djboss.server.log.dir=${WF_LOGS} $([ "${WF_DEBUG,,}" = "true" ] && echo "--debug")"
+WF_OPTS="-Djboss.server.log.dir=${ENTRY_LOGS}/wildfly $([ "${WF_DEBUG,,}" = "true" ] && echo "--debug")"
 ${WILDFLY_HOME}/bin/standalone.sh -b 0.0.0.0 -bmanagement 0.0.0.0 ${WF_OPTS}
