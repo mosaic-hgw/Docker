@@ -24,7 +24,7 @@ FROM ${TAG}
 MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
 
 # variables
-ARG DATE_YMD="20240305"
+ARG DATE_YMD="20240418"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 ARG SKIP_VULNERABILITIES_FIX="false"
 
@@ -93,6 +93,8 @@ RUN cd ${MOS_TEMP_PATH} && \
     I=0 && ( \
         # format: base-download-url jar-base-name jar-new-version(optional) \
         echo "${MAVEN_REPOSITORY}/org/apache/james/apache-mime4j-core apache-mime4j-core 0.8.10"; \
+        echo "${MAVEN_REPOSITORY}/org/apache/cxf/cxf-core cxf-core 4.0.4"; \
+        echo "${MAVEN_REPOSITORY}/io/vertx/vertx-core vertx-core 4.4.8"; \
     ) | while read -r URL NAME VERSION; do UPDATED="false" && \
        I=`expr $I + 1` && OLD_JARS=$(find /opt/ -type f -name "${NAME}-[0-9]*.*ar") && \
        if [ "x${OLD_JARS}" = "x" ]; then echo "  > $I. ${NAME} not found" && continue; fi && \
