@@ -3,6 +3,7 @@
 # get colors
 source ${HOME}/colors.sh
 
+SECONDS=0
 if [ "$WF_ADD_CLI_FILTER" ]; then
     CLI_FILTER="(\.cli|\.${WF_ADD_CLI_FILTER/[, |]+/|\.})"
 else
@@ -42,7 +43,7 @@ if [ $(echo ${BATCH_FILES} | wc -w) -gt 0 ]; then
         fi
     done
     echo "${LINE}"
-    echoSuc "All cli-files successfully executed."
+    echoSuc "all cli-files successfully executed$([ "${SECONDS}" -gt "0" ] && echo " (${SECONDS}s)")"
     echoInfo "> restart wildfly"
     ${WILDFLY_HOME}/bin/jboss-cli.sh -c ":shutdown"
 fi
