@@ -16,19 +16,23 @@ There are 3 strategies built into this docker image.
 
 
 ## Relevant ENV Variables
-| Category   | Variable            | Available values or scheme               | Default       | Purpose                                                                                           |
-|------------|---------------------|------------------------------------------|---------------|---------------------------------------------------------------------------------------------------|
-| Optimizing | TZ                  | \<STRING\>                               | Europe/Berlin |                                                                                                   |
-| Optimizing | MOS_RUN_MODE        | action \| service \| cascade \| external | service       |                                                                                                   |
-| WF-Admin   | WF_NO_ADMIN         | true \| false                            | false         | set `true` if you don't need wildfly-admin                                                        |
-| WF-Admin   | WF_ADMIN_USER       | \<STRING\>                               | admin         | define username for wildfly-admin                                                                 |
-| WF-Admin   | WF_ADMIN_PASS       | \<STRING\>                               | -random-      | to set password for wildfly-admin                                                                 |
-| Quality    | WF_HEALTHCHECK_URLS | \<NEWLINE-SEPARATED-URLs\>               | -             | contain a list of urls to check the health of this container                                      |
-| Optimizing | WF_ADD_CLI_FILTER   | \<PIPE-SEPARATED-STRING\>                | -             | define additional pipe-separated file-extensions that jboss-cli should process                    |
-| Optimizing | WF_MARKERFILES      | true \| false \| auto                    | auto          | these affect the creation of marker-files (.isdeploying or .deployed) in the deployment-directory |
-| Optimizing | JAVA_OPTS           | \<STRING\>                               | -             | you need more memory? then give yourself more memory or define any system-variables               |
-| Debugging  | WF_DEBUG            | true \| false                            | false         | set `true` to enable debug-mode in wildfly                                                        |
-| Debugging  | DEBUG_PORT          | \<IP\>:\<PORT\>                          | *:8787        | for debugging you can change the ip:port                                                          |
+| Category   | Variable                                  | Available values or scheme                       | Default       | Purpose                                                                                           |
+|------------|-------------------------------------------|--------------------------------------------------|---------------|---------------------------------------------------------------------------------------------------|
+| Optimizing | TZ                                        | \<STRING\>                                       | Europe/Berlin |                                                                                                   |
+| Optimizing | MOS_RUN_MODE                              | action \| service \| cascade \| external         | service       |                                                                                                   |
+| WF-Admin   | WF_NO_ADMIN                               | true \| false                                    | false         | set `true` if you don't need wildfly-admin                                                        |
+| WF-Admin   | WF_ADMIN_USER                             | \<STRING\>                                       | admin         | define username for wildfly-admin                                                                 |
+| WF-Admin   | WF_ADMIN_PASS                             | \<STRING\>                                       | -random-      | to set password for wildfly-admin                                                                 |
+| Quality    | WF_HEALTHCHECK_URLS                       | \<NEWLINE-SEPARATED-URLs\>                       | -             | contain a list of urls to check the health of this container                                      |
+| Optimizing | WF_ADD_CLI_FILTER                         | \<PIPE-SEPARATED-STRING\>                        | -             | define additional pipe-separated file-extensions that jboss-cli should process                    |
+| Optimizing | WF_MARKERFILES                            | true \| false \| auto                            | auto          | these affect the creation of marker-files (.isdeploying or .deployed) in the deployment-directory |
+| Logging    | WF_CONSOLE_LOG_LEVEL **<-- deprecated**   | TRACE \| DEBUG \| INFO \| WARN \| ERROR \| FATAL | INFO          | this can be used to set the log level of the console                                              |
+| Logging    | WF_CONSOLE_LOG_TO_FILE **<-- deprecated** | true \| false                                    | true          | if `true` the log is written to a file, otherwise it is displayed on the console                  |
+| Logging    | WF_SYSTEM_LOG_LEVEL **<-- new**           | TRACE \| DEBUG \| INFO \| WARN \| ERROR \| FATAL | INFO          | this can be used to set the log level of the console                                              |
+| Logging    | WF_SYSTEM_LOG_TO **<-- new**              | CONSOLE, FILE                                    | CONSOLE       | multiple values semicolon-separated possible                                                      |
+| Optimizing | JAVA_OPTS                                 | \<STRING\>                                       | -             | you need more memory? then give yourself more memory or define any system-variables               |
+| Debugging  | WF_DEBUG                                  | true \| false                                    | false         | set `true` to enable debug-mode in wildfly                                                        |
+| Debugging  | DEBUG_PORT                                | \<IP\>:\<PORT\>                                  | *:8787        | for debugging you can change the ip:port                                                          |
 
 ```shell
 # more with "envs"
@@ -179,38 +183,39 @@ All relevant adjustments can be written into a CLI-file and passed to WildFly.
 ```
 You will receive the following directory-tree and can start playing immediately:
 ```
-|___layer-readme/
-| |___README-debian.md
-  |___README-wildfly.md
-| |___README-zulujre.md
-|___examples/
-  |___compose-wildfly-dbdriver/
-  | |___jboss/
-  | | |___add_x_driver.cli
-  | |___docker-compose.yml
-  |___compose-wildfly-empty/
-  | |___addins/
-  | |___envs/
-  | | |___wf_commons.env
-  | |___jboss/
-  | |___logs/
-  | |___sqls/
-  | |___docker-compose.yml
-  |___pure-envs/
-    |___debian.env
-    |___wf_commons.env
-    |___zulujre.env
+├─┬─ layer-readme/
+│ ├─── README-debian.md
+│ ├─── README-wildfly.md
+│ └─── README-zulujre.md
+└─┬─ examples/
+  ├─┬─ compose-wildfly-dbdriver/
+  │ ├─── jboss/
+  │ └─┬─ add_x_driver.cli
+  │   └─── docker-compose.yml
+  ├─┬─ compose-wildfly-empty/
+  │ ├─── addins/
+  │ ├─┬─ envs/
+  │ │ └─── wf_commons.env
+  │ ├─── jboss/
+  │ ├─── logs/
+  │ ├─── sqls/
+  │ └─── docker-compose.yml
+  └─┬─ pure-envs/
+    ├─── debian.env
+    ├─── wf_commons.env
+    └─── zulujre.env
 ```
 
 
 ## Current Software-Versions on this Image
-| Date                               | Tags                                                                                                                                                  | Changes                                                                                                                                                            |
-|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 2024-03-05<br><br><br><br><br>     | `31-20240305`, `31`, `preview` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf31))<br><br><br><br><br> | **Debian** 12.5 "bookworm"<br>**openJRE** 21.0.2<br>**WildFly** 31.0.1.Final<br>**MySQL-Connector** 8.3.0<br>**EclipseLink** 4.0.2                                 |
-| 2024-01-11<br><br><br><br><br>     | `30` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf30))<br><br><br><br><br>                           | **Debian** 12.4 "bookworm"<br>**openJRE** 21.0.1<br>**WildFly** 30.0.1.Final<br>**MySQL-Connector** 8.2.0<br>**EclipseLink** 4.0.2                                 |
-| 2023-10-30<br><br><br><br><br>     | `29`<br><br><br><br><br>                                                                                                                              | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9<br>**WildFly** 29.0.1.Final<br>**EclipseLink** 4.0.2<br>**KeyCloak-Client** deleted                               |
-| 2023-12-19<br><br>                 | `26-20231219`, `26`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf26))<br><br>              | **Debian** 12.4 "bookworm"<br>**EclipseLink** 2.7.14                                                                                                               |
-| 2023-10-30<br><br>                 | `26-20231030`<br><br>                                                                                                                                 | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9                                                                                                                   |
-| 2023-07-13                         | `26-20230713`                                                                                                                                         | **Debian** 12.0 "bookworm"                                                                                                                                         |
-| 2023-05-23                         | `26-20230523`                                                                                                                                         | **Debian** 11.7 "bullseye"                                                                                                                                         |
-| 2023-04-25<br><br><br><br><br><br> | `26-20230425`<br><br><br><br><br><br>                                                                                                                 | **Debian** 11.6 "bullseye"<br>**ZuluJRE** 17.0.7<br>**WildFly** 26.1.3.Final<br>**MySQL-Connector** 8.0.33<br>**EclipseLink** 2.7.12<br>**KeyCloak-Client** 19.0.2 |
+| Date                               | Tags                                                                                                                                                                  | Changes                                                                                                                                                            |
+|------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 2024-04-18                         | `31-20240418`, `31`, `preview` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/a5e21db40b173fb988d9bb8eebc2807f646f7004/image/wildfly/Dockerfile.wildfly.31)) | **openJRE** 21.0.3                                                                                                                                                 |
+| 2024-03-05<br><br><br><br>         | `31-20240305` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/26cc174708b3a14c8718818c65e20611f5e91c90/image/wildfly/Dockerfile.wildfly.31))<br><br><br><br>  | **Debian** 12.5 "bookworm"<br>**openJRE** 21.0.2<br>**WildFly** 31.0.1.Final<br>**MySQL-Connector** 8.3.0                                                          |
+| 2024-01-11<br><br><br><br><br>     | `30` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf30))<br><br><br><br><br>                                           | **Debian** 12.4 "bookworm"<br>**openJRE** 21.0.1<br>**WildFly** 30.0.1.Final<br>**MySQL-Connector** 8.2.0<br>**EclipseLink** 4.0.2                                 |
+| 2023-10-30<br><br><br><br><br>     | `29`<br><br><br><br><br>                                                                                                                                              | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9<br>**WildFly** 29.0.1.Final<br>**EclipseLink** 4.0.2<br>**KeyCloak-Client** deleted                               |
+| 2023-12-19<br><br>                 | `26-20231219`, `26`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/main/image/appserver/Dockerfile.app.wf26))<br><br>                              | **Debian** 12.4 "bookworm"<br>**EclipseLink** 2.7.14                                                                                                               |
+| 2023-10-30<br><br>                 | `26-20231030`<br><br>                                                                                                                                                 | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9                                                                                                                   |
+| 2023-07-13                         | `26-20230713`                                                                                                                                                         | **Debian** 12.0 "bookworm"                                                                                                                                         |
+| 2023-05-23                         | `26-20230523`                                                                                                                                                         | **Debian** 11.7 "bullseye"                                                                                                                                         |
+| 2023-04-25<br><br><br><br><br><br> | `26-20230425`<br><br><br><br><br><br>                                                                                                                                 | **Debian** 11.6 "bullseye"<br>**ZuluJRE** 17.0.7<br>**WildFly** 26.1.3.Final<br>**MySQL-Connector** 8.0.33<br>**EclipseLink** 2.7.12<br>**KeyCloak-Client** 19.0.2 |
