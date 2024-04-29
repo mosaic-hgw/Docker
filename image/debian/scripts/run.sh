@@ -42,22 +42,27 @@ if [ $(echo ${RUN_SCRIPTS} | wc -w) -eq 0 ]; then
   exit
 fi
 
-SERVICE_PIDS=()
+PROCESS_PIDS=()
 checkRunningServices() {
   local EXIT_CODE
-  if [ ${#SERVICE_PIDS[@]} -gt 0 ]; then for PID in "${!SERVICE_PIDS[@]}"; do if ! ls /proc/${PID}/exe > /dev/null 2>&1; then
+  if [ ${#PROCESS_PIDS[@]} -gt 0 ]; then for PID in "${!PROCESS_PIDS[@]}"; do if ! ls /proc/${PID}/exe > /dev/null 2>&1; then
     wait ${PID}
     EXIT_CODE=$?
-    echoErr "$(echo "${SERVICE_PIDS[$PID]}" | cut -d: -f1) is stopped (with exit-code ${EXIT_CODE})."
+    echoErr "$(echo "${PROCESS_PIDS[$PID]}" | cut -d: -f1) is stopped (with exit-code ${EXIT_CODE})."
+    unset "PROCESS_PIDS[PID]"
+    update_process_pids
     return ${EXIT_CODE}
   fi; done; fi
   return 0
 }
 
 stopRunningServices() {
-  if [ ${#SERVICE_PIDS[@]} -gt 0 ]; then for PID in "${!SERVICE_PIDS[@]}"; do if ls /proc/${PID}/exe > /dev/null 2>&1; then
-    echoInfo "stop $(echo "${SERVICE_PIDS[$PID]}" | cut -d: -f1)"
-    kill ${PID}
+  if [ ${#PROCESS_PIDS[@]} -gt 0 ]; then for PID in "${!PROCESS_PIDS[@]}"; do if ls /proc/${PID}/exe > /dev/null 2>&1; then
+    echoInfo "stop $(echo "${PROCESS_PIDS[$PID]}" | cut -d: -f1)"
+    local PGID; PGID="$(awk '{print $5}' /proc/${PID}/stat)"
+    kill -TERM -$PGID
+    unset "PROCESS_PIDS[PID]"
+    update_process_pids
   fi; done; fi
 }
 
@@ -67,9 +72,10 @@ startService() {
   local EXIT_CODE
 
   if [ "x${STARTED_SCRIPT}" != "x" ]; then
-    echoInfo "start ${SCRIPT} as service and wait for running with ${STARTED_SCRIPT}"
+    echoInfo "start service ${SCRIPT} and wait for running with ${STARTED_SCRIPT}"
     ${SCRIPT} &
-    SERVICE_PIDS[$!]="${1}"
+    PROCESS_PIDS[$!]="${1}"
+    update_process_pids
     while ! ${STARTED_SCRIPT} ; do
       checkRunningServices
       EXIT_CODE=$?
@@ -77,15 +83,38 @@ startService() {
       sleep 1
     done
   else
-    echoInfo "start ${SCRIPT} as service"
+    echoInfo "start service ${SCRIPT}"
     ${SCRIPT} &
-    SERVICE_PIDS[$!]="${1}"
+    PROCESS_PIDS[$!]="${1}"
+    update_process_pids
     EXIT_CODE=0 # ok
   fi
 
   return ${EXIT_CODE}
 }
 
+startAction() {
+  local SCRIPT; SCRIPT="${1}"
+  echoInfo "start action ${SCRIPT}"
+  ${SCRIPT} &
+  local PID=$!
+  PROCESS_PIDS[${PID}]="${SCRIPT}"
+  update_process_pids
+  wait ${PID}
+  local EXIT_CODE=$?
+  unset "PROCESS_PIDS[PID]"
+  update_process_pids
+  return ${EXIT_CODE}
+}
+
+update_process_pids() {
+  echo -n "" > ${HOME}/process_pids
+  if [ ${#PROCESS_PIDS[@]} -gt 0 ]; then for PID in "${!PROCESS_PIDS[@]}"; do
+    echo "${PID}=$(echo "${PROCESS_PIDS[$PID]}" | cut -d: -f1)" >> ${HOME}/process_pids
+  done; fi
+}
+
+SECONDS=0
 for RUN_SCRIPT in ${RUN_SCRIPTS}; do
   TYPE=$(echo "${RUN_SCRIPT}" | cut -d: -f2)
   SCRIPT=$(echo "${RUN_SCRIPT}" | cut -d: -f3)
@@ -108,12 +137,14 @@ for RUN_SCRIPT in ${RUN_SCRIPTS}; do
       fi
       ;;
     action)
-      echoInfo "start ${SCRIPT} as action"
-      if ! ${SCRIPT}; then
-        EXIT_CODE=$?
+      startAction "${SCRIPT}"
+      EXIT_CODE=$?
+      if [ ${EXIT_CODE} -gt 0 ] ; then
         echoErr "failed ${SCRIPT}, abort all start processes."
         stopRunningServices
         exit ${EXIT_CODE}
+      else
+        echoInfo "successfully finished action ${SCRIPT}"
       fi
       ;;
     *) echoErr "Unknown option: $1"; exit 1 ;;
@@ -125,17 +156,17 @@ if [ "${MOS_RUN_MODE}" == "action" ]; then
   exit 0
 fi
 
-echoSuc "all services started"
+echoSuc "all services started$([ "${SECONDS}" -gt "0" ] && echo " (${SECONDS}s)")"
 while true; do
   case "${MOS_RUN_MODE}" in
     service)
-      if [ ${#SERVICE_PIDS[@]} -gt 0 ]; then for PID in "${!SERVICE_PIDS[@]}"; do if ! ls /proc/${PID}/exe > /dev/null 2>&1; then
-        echo "$(echo "${SERVICE_PIDS[$PID]}" | cut -d: -f1) ${SCRIPT}"
-        #startService "${SERVICE_PIDS[$PID]}"
-        if ! startService "${SERVICE_PIDS[$PID]}"; then
+      if [ ${#PROCESS_PIDS[@]} -gt 0 ]; then for PID in "${!PROCESS_PIDS[@]}"; do if ! ls /proc/${PID}/exe > /dev/null 2>&1; then
+        echo "$(echo "${PROCESS_PIDS[$PID]}" | cut -d: -f1) ${SCRIPT}"
+        #startService "${PROCESS_PIDS[$PID]}"
+        if ! startService "${PROCESS_PIDS[$PID]}"; then
           echoErr "cannot restart service. abort all processes."
         fi
-        unset "SERVICE_PIDS[PID]"
+        unset "PROCESS_PIDS[PID]"
       fi; done; fi
       ;;
     cascade)
