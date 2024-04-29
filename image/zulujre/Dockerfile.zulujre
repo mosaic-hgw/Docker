@@ -24,7 +24,7 @@ FROM ${TAG}
 MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
 
 # variables
-ARG DATE_YMD="20240305"
+ARG DATE_YMD="20240418"
 ARG JAVA_VERSION="21"
 ARG JAVA_DOWNLOAD_URL="https://cdn.azul.com/zulu/bin/"
 ENV JAVA_HOME="/usr/lib/jvm/zulu" \
@@ -41,8 +41,7 @@ LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
 
 # create folders and permissions
 USER root
-COPY ["help-and-usage", "${ENTRY_USAGE}/"]
-COPY ["README*.md", "${ENTRY_USAGE}/layer-readme/"]
+COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["help-and-usage", "${ENTRY_USAGE}/"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
     apt-get update && \
