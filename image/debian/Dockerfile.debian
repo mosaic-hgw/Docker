@@ -3,7 +3,7 @@ FROM debian:stable-slim
 # ###license-information-start###
 # The MOSAIC-Project - Debian Stable
 # __
-# Copyright (C) 2009 - ${build.year} Institute for Community Medicine
+# Copyright (C) 2009 - 2024 Institute for Community Medicine
 # University Medicine of Greifswald - mosaic-project@uni-greifswald.de
 # __
 # This program is free software: you can redistribute it and/or modify
