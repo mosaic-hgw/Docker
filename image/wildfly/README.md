@@ -62,12 +62,12 @@ There are 3 strategies built into this docker image.
 
 # "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/wildfly versions
-  last updated               : 2024-04-29 14:37:41
+  last updated               : 2024-05-23 09:35:31
   Distribution               : Debian GNU/Linux 12.5
   zulu-jre                   : 21.0.3
   WildFly                    : 32.0.0.Final
   MySQL-Connector            : 8.3.0
-  EclipseLink                : 4.0.2
+  EclipseLink                : 4.0.3
 
 # simple start with your deployments and without admin-user
 > docker run --rm \
@@ -209,7 +209,9 @@ You will receive the following directory-tree and can start playing immediately:
 ## Current Software-Versions on this Image
 | Date                               | Tags                                                                                                                                                                         | Changes                                                                                                                                                            |
 |------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 2024-04-29                         | `32-20240429`, `32`, `preview` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/c6a78e0ada518ee18f08aaa19a6e1b57441317c9/image/wildfly/Dockerfile.wildfly.31))        | **WildFly** 32.0.0.Final                                                                                                                                           |
+| 2024-05-23                         | `32-20240523`, `32`, `preview`  ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/ad6ba5ba960d9e29f00cbe8bc92b4fcdb0d5aec1/image/wildfly/Dockerfile.wildfly.32))       | **EclipseLink** 4.0.3                                                                                                                                              |
+| 2024-05-13                         | `32-20240513`                                                                                                                                                                | fixed vulnerabilities in libc                                                                                                                                      |
+| 2024-04-29                         | `32-20240429` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/c6a78e0ada518ee18f08aaa19a6e1b57441317c9/image/wildfly/Dockerfile.wildfly.32))                         | **WildFly** 32.0.0.Final                                                                                                                                           |
 | 2024-04-18<br><br><br><br>         | `31` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/a5e21db40b173fb988d9bb8eebc2807f646f7004/image/wildfly/Dockerfile.wildfly.31))<br><br><br><br>                  | **Debian** 12.5 "bookworm"<br>**openJRE** 21.0.3<br>**WildFly** 31.0.1.Final<br>**MySQL-Connector** 8.3.0                                                          |
 | 2024-01-11<br><br><br><br><br>     | `30` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/7377469445d77d08e4556d4158cfc52df7a45410/image/appserver/Dockerfile.app.wf30))<br><br><br><br><br>              | **Debian** 12.4 "bookworm"<br>**openJRE** 21.0.1<br>**WildFly** 30.0.1.Final<br>**MySQL-Connector** 8.2.0<br>**EclipseLink** 4.0.2                                 |
 | 2023-10-30<br><br><br><br><br>     | `29`<br><br><br><br><br>                                                                                                                                                     | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9<br>**WildFly** 29.0.1.Final<br>**EclipseLink** 4.0.2<br>**KeyCloak-Client** deleted                               |
