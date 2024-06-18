@@ -24,10 +24,10 @@ FROM ${TAG}
 MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
 
 # variables
-ARG DATE_YMD="20240305"
-ARG MYSQL_VERSION="8.3.0"
-ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com//Downloads/MySQL-8.3/mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64-minimal.tar.xz"
-ARG MYSQL_SHA256="9d6181edea1b80a2edf3e15247b87a35f2b0d25fd927d993d9162678eac6160a"
+ARG DATE_YMD="20240618"
+ARG MYSQL_VERSION="8.4.0"
+ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com//Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64-minimal.tar.xz"
+ARG MYSQL_SHA256="d466dd5cf4aea59965b9514b8eecda24cc550a765d43f8c9410868d53bf4aa93"
 
 ENV MYSQL_HOME="${HOME}/mysql" \
     MYSQL_ROOT_PASSWORD="root" \
@@ -50,9 +50,8 @@ LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
 
 # create image
 USER root
-COPY ["scripts", "${MYSQL_HOME}"]
-COPY ["help-and-usage", "${ENTRY_USAGE}/"]
-COPY ["README*.md", "${ENTRY_USAGE}/layer-readme/"]
+COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["scripts", "${MYSQL_HOME}"]
+COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["help-and-usage", "${ENTRY_USAGE}/"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
     apt-get update && \
