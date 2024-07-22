@@ -31,7 +31,7 @@ or a complete test image, which is based on a `wildfly-db` image.
 > docker run --rm mosaicgreifswald/jmeter versions
   last updated               : 2024-07-22 14:07:51
   Distribution               : Debian GNU/Linux 12.6
-  zulu-jre                   : 21.0.3
+  zulu-jre                   : 21.0.4
   jMeter                     : 5.6.3
   jMeter-Plugins             : 1.4.0
   java-json                  : 20240303
