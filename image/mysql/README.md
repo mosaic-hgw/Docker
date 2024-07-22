@@ -34,9 +34,9 @@ For example, the memory requirement can simply be specified with: `MYSQL_OPTS=--
 
 # "versions" shows all installed tools and components, with their versions
 > docker run --rm mosaicgreifswald/mysql versions
-  last updated               : 2024-03-05 09:50:18
-  Distribution               : Debian GNU/Linux 12.5
-  MySQL-Server               : 8.3.0
+  last updated               : 2024-07-22 09:50:18
+  Distribution               : Debian GNU/Linux 12.6
+  MySQL-Server               : 8.4.1
   
 # "entrypoints" lists all registered entrypoints
 > docker run --rm mosaicgreifswald/mysql entrypoints
@@ -109,7 +109,8 @@ You will receive the following directory-tree and can start playing immediately:
 
 
 ## Current Software-Versions on this Image
-| Date               | Tags                                                                                                                                                     | Changes                                              |
-|--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
-| 2024-06-18         | `8.4.0`, `8`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/8ca53f507d18361bca5fc3e824630f7a813590a8/image/mysql/Dockerfile.mysql.8)) | **MySQL-Server** 8.4.0                               |
-| 2024-03-05<br><br> | `8.3.0` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8))<br><br>        | **Debian** 12.5 "bookworm"<br>**MySQL-Server** 8.3.0 |
+| Date               | Tags                                                                                                                                                             | Changes                                              |
+|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| 2024-07-22<br><br> | `8.4.1`, `8`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/d66574b99dfe376a80bb1ca3ff86c3103991cb4f/image/mysql/Dockerfile.mysql.8))<br><br> | **Debian** 12.6 "bookworm"<br>**MySQL-Server** 8.4.1 |
+| 2024-06-18         | `8.4.0` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/8ca53f507d18361bca5fc3e824630f7a813590a8/image/mysql/Dockerfile.mysql.8))                        | **MySQL-Server** 8.4.0                               |
+| 2024-03-05<br><br> | `8.3.0` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8))<br><br>                | **Debian** 12.5 "bookworm"<br>**MySQL-Server** 8.3.0 |
