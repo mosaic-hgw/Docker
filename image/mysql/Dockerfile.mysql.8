@@ -24,14 +24,15 @@ FROM ${TAG}
 MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
 
 # variables
-ARG DATE_YMD="20240618"
-ARG MYSQL_VERSION="8.4.0"
+ARG DATE_YMD="20240722"
+ARG MYSQL_VERSION="8.4.1"
 ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com//Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64-minimal.tar.xz"
-ARG MYSQL_SHA256="d466dd5cf4aea59965b9514b8eecda24cc550a765d43f8c9410868d53bf4aa93"
+ARG MYSQL_SHA256="79e40f541f9c4295f9e018a33af0976de63c1e9a83ba5c424d5f9839cf9b08e7"
 
 ENV MYSQL_HOME="${HOME}/mysql" \
-    MYSQL_ROOT_PASSWORD="root" \
-    MYSQL_OPTS="" \
+    TTP_MYSQL_ROOT_PASSWORD="root" \
+    TTP_MYSQL_OPTS="" \
+    TTP_MYSQL_LOG_TO="CONSOLE" \
     \
     ENTRY_MYSQL_DATADIR="/entrypoint-mysql-data" \
     ENTRY_MYSQL_SQLS="/entrypoint-mysql-sqls" \
