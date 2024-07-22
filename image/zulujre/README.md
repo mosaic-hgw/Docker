@@ -44,20 +44,20 @@ openjdk version "17.0.9" 2023-10-17 LTS
 
 # show all versions (last installed java is per default selected as "current") 
 > docker run --rm mosaicgreifswald/zulujre:17-21 versions
-  last updated               : 2023-12-21 15:10:11
-  Distribution               : Debian GNU/Linux 12.4
+  last updated               : 2024-07-22 14:19:28
+  Distribution               : Debian GNU/Linux 12.6
   zulu-jre                   : 17.0.9
-  zulu-jre                   : 21.0.1 (current)
+  zulu-jre                   : 21.0.3 (current)
 
 > docker run --rm mosaicgreifswald/zulujre:17-21 java -version
 openjdk version "21.0.1" 2023-10-17 LTS
 
 # switch java-version per environment-variable
 > docker run --rm -e JAVA_VERSION=17 mosaicgreifswald/zulujre:17-21 versions
-  last updated               : 2023-12-21 15:10:11
-  Distribution               : Debian GNU/Linux 12.4
+  last updated               : 2024-07-22 14:19:28
+  Distribution               : Debian GNU/Linux 12.6
   zulu-jre                   : 17.0.9 (current)
-  zulu-jre                   : 21.0.1
+  zulu-jre                   : 21.0.3
 
 > docker run --rm -e JAVA_VERSION=17 mosaicgreifswald/zulujre:17-21 java -version
 openjdk version "17.0.9" 2023-10-17 LTS
@@ -65,19 +65,19 @@ openjdk version "17.0.9" 2023-10-17 LTS
 # switch java-version in running container
 > docker run --rm -it mosaicgreifswald/zulujre:17-21 bash
 > java -version
-openjdk version "21.0.1" 2023-10-17 LTS
+openjdk version "21.0.3" 2024-04-16 LTS
 
 > JAVA_VERSION=17; java -version
 openjdk version "17.0.9" 2023-10-17 LTS
 ```
 
 ## Current Software-Versions on this Image
-| Date               | Tags                                                                                                                                                         | Changes                                         |
-|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
-| 2024-04-18         | `21.0.3`, `21`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/7083169457b7f66494159628479aa36cc166b13a/image/zulujre/Dockerfile.zulujre)) | **Java** 21.0.3                                 |
-| 2024-03-05<br><br> | `21.0.2`<br><br>                                                                                                                                             | **Debian** 12.5 "bookworm"<br>**Java** 21.0.2   |
-| 2023-12-11         | `21.0.1`                                                                                                                                                     | **Java** 21.0.1                                 |
-| 2023-12-11         | `17.0.9-1`, `17`                                                                                                                                             | **Debian** 12.4 "bookworm"                      |
-| 2023-10-30<br><br> | `17.0.9`<br><br>                                                                                                                                             | **Debian** 12.2 "bookworm"<br>**Java** 17.0.9   |
-| 2023-09-28<br><br> | `17.0.8.1`<br><br>                                                                                                                                           | **Debian** 12.1 "bookworm"<br>**Java** 17.0.8.1 |
-| 2023-04-25<br><br> | `17.0.7` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/3441209dd6b8ef2892a6e264ad58898c805e0114/image/java/Dockerfile.jre.zulu))<br><br>           | **Debian** 11.6 "bullseye"<br>**Java** 17.0.7   |
+| Date               | Tags                                                                                                                                                                 | Changes                                         |
+|--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
+| 2024-07-22<br><br> | `21.0.3`, `21`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/7083169457b7f66494159628479aa36cc166b13a/image/zulujre/Dockerfile.zulujre))<br><br> | **Debian** 12.6 "bookworm"<br>**Java** 21.0.3   |
+| 2024-03-05<br><br> | `21.0.2`<br><br>                                                                                                                                                     | **Debian** 12.5 "bookworm"<br>**Java** 21.0.2   |
+| 2023-12-11         | `21.0.1`                                                                                                                                                             | **Java** 21.0.1                                 |
+| 2023-12-11         | `17.0.9-1`, `17`                                                                                                                                                     | **Debian** 12.4 "bookworm"                      |
+| 2023-10-30<br><br> | `17.0.9`<br><br>                                                                                                                                                     | **Debian** 12.2 "bookworm"<br>**Java** 17.0.9   |
+| 2023-09-28<br><br> | `17.0.8.1`<br><br>                                                                                                                                                   | **Debian** 12.1 "bookworm"<br>**Java** 17.0.8.1 |
+| 2023-04-25<br><br> | `17.0.7` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/3441209dd6b8ef2892a6e264ad58898c805e0114/image/java/Dockerfile.jre.zulu))<br><br>                   | **Debian** 11.6 "bullseye"<br>**Java** 17.0.7   |
