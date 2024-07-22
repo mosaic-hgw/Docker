@@ -111,5 +111,5 @@ You will receive the following directory-tree and can start playing immediately:
 ## Current Software-Versions on this Image
 | Date               | Tags                                                                                                                                                             | Changes                                              |
 |--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
-| 2024-07-22<br><br> | `5.6.3`, `5`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8))<br><br> | **Debian** 12.6 "bookworm"<br>**MySQL-Server** 8.4.0 |
+| 2024-07-22<br><br> | `5.6.3`, `5`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/ac36ede7359683a8d5b9c8c81c8b1bb28d4bfe55/image/mysql/Dockerfile.mysql.8))<br><br> | **Debian** 12.6 "bookworm"<br>**MySQL-Server** 8.4.0 |
 | 2024-03-05<br><br> | `5.6.3` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8))<br><br>                | **Debian** 12.5 "bookworm"<br>**MySQL-Server** 8.3.0 |
