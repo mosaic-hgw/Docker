@@ -24,7 +24,7 @@ FROM ${TAG}
 MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
 
 # variables
-ARG DATE_YMD="20240305"
+ARG DATE_YMD="20240705"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 ARG SKIP_VULNERABILITIES_FIX="false"
 
@@ -40,9 +40,9 @@ ARG JAVA_JSON_VERSION="20240303"
 ARG JAVA_JSON_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/json/json/${JAVA_JSON_VERSION}/json-${JAVA_JSON_VERSION}.jar"
 ARG JAVA_JSON_SHA256="3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed"
 
-ARG MYSQL_CONNECTOR_VERSION="8.3.0"
+ARG MYSQL_CONNECTOR_VERSION="8.4.0"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
-ARG MYSQL_CONNECTOR_SHA256="94e7fa815370cdcefed915db7f53f88445fac110f8c3818392b992ec9ee6d295"
+ARG MYSQL_CONNECTOR_SHA256="d77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5"
 
 ARG PROMETHEUS_PLUGIN_VERSION="0.7.1"
 ARG PROMETHEUS_PLUGIN_DOWNLOAD_URL="https://github.com/johrstrom/jmeter-prometheus-plugin/releases/download/${PROMETHEUS_PLUGIN_VERSION}/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar"
@@ -72,9 +72,8 @@ LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
 
 # install needed packages and create user
 USER root
-COPY ["scripts", "${JMETER_HOME}"]
-COPY ["help-and-usage", "${ENTRY_USAGE}/"]
-COPY ["README*.md", "${ENTRY_USAGE}/layer-readme/"]
+COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["scripts", "${JMETER_HOME}"]
+COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["help-and-usage", "${ENTRY_USAGE}/"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
     apt-get update && \
@@ -166,4 +165,4 @@ RUN cd ${MOS_TEMP_PATH} && \
 USER ${USER}
 
 # ports
-EXPOSE 9270
+EXPOSE 9270 4445
