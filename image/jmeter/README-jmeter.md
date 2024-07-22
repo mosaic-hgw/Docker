@@ -29,9 +29,9 @@ or a complete test image, which is based on a `wildfly-db` image.
 
 # "versions" shows all installed tools and components, with their versions
 > docker run --rm mosaicgreifswald/jmeter versions
-  last updated               : 2024-03-05 14:07:51
-  Distribution               : Debian GNU/Linux 12.5
-  zulu-jre                   : 21.0.2
+  last updated               : 2024-07-22 14:07:51
+  Distribution               : Debian GNU/Linux 12.6
+  zulu-jre                   : 21.0.3
   jMeter                     : 5.6.3
   jMeter-Plugins             : 1.4.0
   java-json                  : 20240303
@@ -109,6 +109,7 @@ You will receive the following directory-tree and can start playing immediately:
 
 
 ## Current Software-Versions on this Image
-| Date       | Tags                                                                                                                                                     | Changes                                              |
-|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
-| 2024-03-05 | `5.6.3`, `5`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8)) | **Debian** 12.5 "bookworm"<br>**MySQL-Server** 8.3.0 |
+| Date               | Tags                                                                                                                                                             | Changes                                              |
+|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
+| 2024-07-22<br><br> | `5.6.3`, `5`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8))<br><br> | **Debian** 12.6 "bookworm"<br>**MySQL-Server** 8.4.0 |
+| 2024-03-05<br><br> | `5.6.3` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8))<br><br>                | **Debian** 12.5 "bookworm"<br>**MySQL-Server** 8.3.0 |
