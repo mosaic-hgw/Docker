@@ -21,19 +21,16 @@ FROM ${TAG}
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # ###license-information-end###
 
-MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
-
 # variables
-ARG DATE_YMD="20240418"
+ARG DATE_YMD="20240909"
 ARG JAVA_VERSION="21"
 ARG JAVA_DOWNLOAD_URL="https://cdn.azul.com/zulu/bin/"
 ENV JAVA_HOME="/usr/lib/jvm/zulu" \
     ENTRY_JAVA_CACERTS="/entrypoint-java-cacerts"
 
 # annotations
-LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
-      org.opencontainers.image.authors="university-medicine greifswald" \
-      org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/jre" \
+LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
+      org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/zulujre" \
       org.opencontainers.image.version="${JAVA_VERSION}-${DATE_YMD}" \
       org.opencontainers.image.vendor="uni-greifswald.de" \
       org.opencontainers.image.title="mosaic-jre" \
