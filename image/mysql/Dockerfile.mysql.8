@@ -21,13 +21,11 @@ FROM ${TAG}
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # ###license-information-end###
 
-MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
-
 # variables
-ARG DATE_YMD="20240722"
-ARG MYSQL_VERSION="8.4.1"
-ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com//Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64-minimal.tar.xz"
-ARG MYSQL_SHA256="79e40f541f9c4295f9e018a33af0976de63c1e9a83ba5c424d5f9839cf9b08e7"
+ARG DATE_YMD="20240909"
+ARG MYSQL_VERSION="8.4.2"
+ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64-minimal.tar.xz"
+ARG MYSQL_SHA256="45df52c7437a9abf3b7f653e94d2c2e940e4e292698cd16d31951a783b281820"
 
 ENV MYSQL_HOME="${HOME}/mysql" \
     TTP_MYSQL_ROOT_PASSWORD="root" \
@@ -41,8 +39,7 @@ ENV MYSQL_HOME="${HOME}/mysql" \
     ENTRY_MYSQL_LOGS="/entrypoint-mysql-logs"
 
 # annotations
-LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
-      org.opencontainers.image.authors="university-medicine greifswald" \
+LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
       org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/mysql" \
       org.opencontainers.image.version="8-${DATE_YMD}" \
       org.opencontainers.image.vendor="uni-greifswald.de" \
@@ -91,7 +88,7 @@ RUN cd ${MOS_TEMP_PATH} && \
     ln -s ${MYSQL_HOME}/my.cnf ${ENTRY_MYSQL_MY_CNF} && \
     ln -s ${ENTRY_LOGS}/mysql ${ENTRY_MYSQL_LOGS} && \
     ln -s ${MYSQL_HOME}/bin/* /usr/bin/ && \
-    chown ${USER}.${USER} -R ${HOME} ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_SOCKET} ${ENTRY_LOGS} ${ENTRY_MYSQL_MY_CNF} ${ENTRY_MYSQL_LOGS} ${ENTRY_USAGE} && \
+    chown ${USER}:${USER} -R ${HOME} ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_SOCKET} ${ENTRY_LOGS} ${ENTRY_MYSQL_MY_CNF} ${ENTRY_MYSQL_LOGS} ${ENTRY_USAGE} && \
     chmod u+x -R ${HOME}/**/*.sh && \
     chmod 644 ${MYSQL_HOME}/my.cnf && \
     rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
