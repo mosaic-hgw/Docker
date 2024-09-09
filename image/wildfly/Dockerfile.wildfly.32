@@ -21,10 +21,8 @@ FROM ${TAG}
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # ###license-information-end###
 
-MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
-
 # variables
-ARG DATE_YMD="20240722"
+ARG DATE_YMD="20240823"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 
 ARG WILDFLY_VERSION="32.0.1.Final"
@@ -48,15 +46,16 @@ ENV WILDFLY_HOME="${HOME}/wildfly" \
     JBOSS_CLI="${HOME}/wildfly/bin/jboss-cli.sh" \
     LAUNCH_JBOSS_IN_BACKGROUND="true" \
     LOG4J_FORMAT_MSG_NO_LOOKUPS="true" \
+    JAVA_OPTS="-server -Xms1G -Xmx4G -XX:MetaspaceSize=256M -XX:MaxMetaspaceSize=1G -XX:StringTableSize=1000003 -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Djboss.modules.system.pkgs=org.jboss.byteman" \
     \
     ENTRY_WILDFLY_CLI="/entrypoint-wildfly-cli" \
     ENTRY_WILDFLY_DEPLOYS="/entrypoint-wildfly-deployments" \
     ENTRY_WILDFLY_ADDINS="/entrypoint-wildfly-addins" \
-    ENTRY_WILDFLY_LOGS="/entrypoint-wildfly-logs"
+    ENTRY_WILDFLY_LOGS="/entrypoint-wildfly-logs" \
+    ENTRY_WILDFLY_SERVER_KEYSTORE="/entrypoint-wildfly-server-keystore"
 
 # annotations
-LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
-      org.opencontainers.image.authors="university-medicine greifswald" \
+LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
       org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/wildfly" \
       org.opencontainers.image.version="32-${DATE_YMD}" \
       org.opencontainers.image.vendor="uni-greifswald.de" \
@@ -126,6 +125,7 @@ RUN cd ${MOS_TEMP_PATH} && \
       --add-entrypoint="ENTRY_WILDFLY_DEPLOYS:${ENTRY_WILDFLY_DEPLOYS}" \
       --add-entrypoint="ENTRY_WILDFLY_ADDINS:${ENTRY_WILDFLY_ADDINS}" \
       --add-entrypoint="ENTRY_WILDFLY_LOGS:${ENTRY_WILDFLY_LOGS}" \
+      --add-entrypoint="ENTRY_WILDFLY_SERVER_KEYSTORE:${ENTRY_WILDFLY_SERVER_KEYSTORE}" \
       --add-healthcheck-script="${WILDFLY_HOME}/healthcheck_wildfly.sh" \
       --add-run-script="20:service:${WILDFLY_HOME}/run_wildfly.sh:${WILDFLY_HOME}/wildfly_started.sh" && \
     \
