@@ -20,10 +20,8 @@ FROM debian:stable-slim
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # ###license-information-end###
 
-MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
-
 # variables
-ARG DATE_YMD="20240418"
+ARG DATE_YMD="20240909"
 ARG WAIT_FOR_IT_DOWNLOAD_URL="https://raw.githubusercontent.com/vishnubob/wait-for-it/ed77b63706ea721766a62ff22d3a251d8b4a6a30/wait-for-it.sh"
 ARG WAIT_FOR_IT_SHA256="2ea7475e07674e4f6c1093b4ad6b0d8cbbc6f9c65c73902fb70861aa66a6fbc0"
 
@@ -40,8 +38,7 @@ ENV HOME="/opt/mosaic" \
     ENTRY_USAGE="/entrypoint-help-and-usage"
 
 # annotations
-LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
-      org.opencontainers.image.authors="university-medicine greifswald" \
+LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
       org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/debian" \
       org.opencontainers.image.version="${DATE_YMD}" \
       org.opencontainers.image.vendor="uni-greifswald.de" \
