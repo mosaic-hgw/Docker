@@ -51,8 +51,8 @@ The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does no
 
 # "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/debian:latest versions
-  last updated               : 2024-09-09 08:45:07
-  Distribution               : Debian GNU/Linux 12.7
+  last updated               : 2024-11-11 10:38:20
+  Distribution               : Debian GNU/Linux 12.8
   
 # "entrypoints" lists all registered entrypoints.
 > docker run --rm mosaicgreifswald/debian:latest entrypoints
@@ -61,13 +61,14 @@ The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does no
 ```
 
 ## Current Software-Versions on this Image
-| Date       | Tags                                                                                                                                                     | Changes                    |
-|------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------|
-| 2024-09-09 | `12.7`, `12`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/75e66a88eb961ca664eb754cb9c0c20ee9197c3d/image/debian/Dockerfile.debian)) | **Debian** 12.7 "bookworm" |
-| 2024-07-22 | `12.6` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/d60333bba59fc8c1c6dbbcb3cad5b6180e3e5105/image/debian/Dockerfile.debian))                 | **Debian** 12.6 "bookworm" |
-| 2024-05-13 | `12.5`                                                                                                                                                   | **Debian** 12.5 "bookworm" |
-| 2023-12-11 | `12.4` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5981092ec91894fdcdc6961a79b3b45b2e141b1c/image/base/Dockerfile.base.deb))                 | **Debian** 12.4 "bookworm" |
-| 2023-10-30 | `12.2`                                                                                                                                                   | **Debian** 12.2 "bookworm" |
-| 2023-09-28 | `12.1`                                                                                                                                                   | **Debian** 12.1 "bookworm" |
-| 2023-07-13 | `12.0`                                                                                                                                                   | **Debian** 12.0 "bookworm" |
-| 2023-04-25 | `11`, `11.7` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/2af37800a94baed6dff61d6533c499dfb42cd545/image/base/Dockerfile.base.deb))           | **Debian** 11.7 "bullseye" |
+| Date       | Tags                                                                                                                                           | Changes                    |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------|
+| 2024-11-11 | `12.8`, `12`, `latest`                                                                                                                         | **Debian** 12.8 "bookworm" |
+| 2024-09-09 | `12.7` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/75e66a88eb961ca664eb754cb9c0c20ee9197c3d/image/debian/Dockerfile.debian))       | **Debian** 12.7 "bookworm" |
+| 2024-07-22 | `12.6` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/d60333bba59fc8c1c6dbbcb3cad5b6180e3e5105/image/debian/Dockerfile.debian))       | **Debian** 12.6 "bookworm" |
+| 2024-05-13 | `12.5`                                                                                                                                         | **Debian** 12.5 "bookworm" |
+| 2023-12-11 | `12.4` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5981092ec91894fdcdc6961a79b3b45b2e141b1c/image/base/Dockerfile.base.deb))       | **Debian** 12.4 "bookworm" |
+| 2023-10-30 | `12.2`                                                                                                                                         | **Debian** 12.2 "bookworm" |
+| 2023-09-28 | `12.1`                                                                                                                                         | **Debian** 12.1 "bookworm" |
+| 2023-07-13 | `12.0`                                                                                                                                         | **Debian** 12.0 "bookworm" |
+| 2023-04-25 | `11`, `11.7` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/2af37800a94baed6dff61d6533c499dfb42cd545/image/base/Dockerfile.base.deb)) | **Debian** 11.7 "bullseye" |
