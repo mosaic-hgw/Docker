@@ -3,7 +3,7 @@
 module add \
   --name=org.postgre \
   --dependencies=javax.api,javax.transaction.api \
-  --resources=/entrypoint-wildfly-cli/ext/postgresql-42.7.2.jar
+  --resources=/entrypoint-wildfly-cli/ext/postgresql-42.7.4.jar
 
 /subsystem=datasources/jdbc-driver=postgre:add( \
   driver-name="postgre", \
