@@ -22,16 +22,16 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20240823"
+ARG DATE_YMD="20241111"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 
 ARG WILDFLY_VERSION="32.0.1.Final"
 ARG WILDFLY_DOWNLOAD_URL="https://github.com/wildfly/wildfly/releases/download/${WILDFLY_VERSION}/wildfly-${WILDFLY_VERSION}.tar.gz"
 ARG WILDFLY_SHA256="4456ae517613a3fc603bade301cffde5805c6afbfed216bd0333b7a99df5aa8f"
 
-ARG MYSQL_CONNECTOR_VERSION="8.4.0"
+ARG MYSQL_CONNECTOR_VERSION="9.1.0"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
-ARG MYSQL_CONNECTOR_SHA256="d77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5"
+ARG MYSQL_CONNECTOR_SHA256="8776e2ebc46072c9a47ea59d98298c4273bd9f16a7b26b5dfa4744535aa26c62"
 
 ARG ECLIPSELINK_VERSION="4.0.4"
 ARG ECLIPSELINK_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/eclipse/persistence/eclipselink/${ECLIPSELINK_VERSION}/eclipselink-${ECLIPSELINK_VERSION}.jar"
@@ -85,20 +85,46 @@ RUN cd ${MOS_TEMP_PATH} && \
     mkdir -p ${WILDFLY_HOME}/standalone/log && touch ${WILDFLY_HOME}/standalone/log/server.log && \
     chown -R ${USER}:${USER} ${WILDFLY_HOME} && chmod -R g+rw ${WILDFLY_HOME} && \
     \
-    echo "> 4. get mysql-connector " && \
+	echo -n "> 4. update vulnerable java-libraries" && \
+    ([ "${SKIP_VULNERABILITIES_FIX}" = "true" ] && echo " (skipped)" || (echo && \
+    I=0 && ( \
+        # format: base-download-url jar-base-name jar-new-version(optional) \
+        echo "${MAVEN_REPOSITORY}/com/google/protobuf/protobuf-java protobuf-java 3.25.5"; \
+    ) | while read -r URL NAME VERSION; do UPDATED="false" && \
+       I=`expr $I + 1` && OLD_JARS=$(find /opt/ -type f -name "${NAME}-[0-9]*.*ar") && \
+       if [ "x${OLD_JARS}" = "x" ]; then echo "  > $I. ${NAME} not found" && continue; fi && \
+       for OLD_JAR in ${OLD_JARS}; do \
+           if [ "x" = "x${VERSION}" ]; then \
+               VERSION=$(curl -LfSs ${URL} | grep -E ">[0-9]\.[-a-zA-Z0-9\.]+/<" | sort -Vuk2 | tail -n1 | sed -r "s/^.+>([0-9]\.[-a-zA-Z0-9\.]+).+$/\1/"); \
+           fi && \
+           echo -n ">> $I. ${OLD_JAR} > ${VERSION} > " && \
+           OLD_VERSION=$(echo ${OLD_JAR} | rev | cut -d'-' -f1 | rev | sed 's/.jar//') && \
+           if [ "${OLD_VERSION}" = "${VERSION}" ]; then echo "same version" && continue; fi && \
+           JAR_FILE="${NAME}-${VERSION}.jar" && \
+           curl -Lfso $(dirname "${OLD_JAR}")/${JAR_FILE} "${URL}/${VERSION}/${JAR_FILE}" && \
+           if [ -f "$(dirname "${OLD_JAR}")/module.xml" ]; then \
+               sed -r "s/${NAME}\-[0-9]+.+\.jar/${JAR_FILE}/" -i $(dirname "${OLD_JAR}")/module.xml; \
+           fi && \
+           rm -f ${OLD_JAR} && \
+           UPDATED="true" && echo "ok" || echo "failed"; \
+       done ; \
+       ([ "true" = "${UPDATED}" ] || echo "        nothing to update for ${NAME}") ; \
+    done)) && \
+    \
+    echo "> 5. get mysql-connector " && \
     (curl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
     tar xf mysql-connector-java.tar.gz && \
     mv mysql-connector-j-*/mysql*jar ./mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar && \
     (sha256sum mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar | grep -q ${MYSQL_CONNECTOR_SHA256} || (>&2 echo "sha256sum failed $(sha256sum mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar)" && exit 1)) && \
     \
-    echo "> 5. get eclipselink " && \
+    echo "> 6. get eclipselink " && \
     (curl -Lfo ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL}\n" && exit 1))  && \
     (sha256sum ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar | grep -q ${ECLIPSELINK_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar)" && exit 1)) && \
     sed -i "s/<\/resources>/    <resource-root path=\"eclipselink-${ECLIPSELINK_VERSION}.jar\"\/>\n    <\/resources>/;\
         s/<\/dependencies>/    <module name=\"java.rmi\"\/>\n        <module name=\"java.desktop\"\/>\n        <module name=\"java.xml\"\/>\n    <\/dependencies>/" ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/module.xml && \
     chown -R ${USER}:${USER} ${WILDFLY_HOME}/${ECLIPSELINK_PATH} && \
     \
-    echo "> 6. prepare wildfly" && \
+    echo "> 7. prepare wildfly" && \
     (${WILDFLY_HOME}/bin/standalone.sh &) && \
     START=$(date +%s) && \
     TIMEOUT=30 && \
@@ -115,7 +141,7 @@ RUN cd ${MOS_TEMP_PATH} && \
     	:shutdown" || exit 1) && \
     echo -n "true" > ${MOS_READY_PATH}/markerfiles_mode && \
     \
-    echo "> 7. register wildfly" && \
+    echo "> 8. register wildfly" && \
     register \
       --os-updated \
       --add-version="WildFly:${WILDFLY_VERSION}" \
@@ -129,7 +155,7 @@ RUN cd ${MOS_TEMP_PATH} && \
       --add-healthcheck-script="${WILDFLY_HOME}/healthcheck_wildfly.sh" \
       --add-run-script="20:service:${WILDFLY_HOME}/run_wildfly.sh:${WILDFLY_HOME}/wildfly_started.sh" && \
     \
-    echo "> 8. cleanup" && \
+    echo "> 9. cleanup" && \
     apt-get clean && \
     apt-get autoclean && \
     apt-get autoremove && \
