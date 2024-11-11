@@ -48,6 +48,13 @@ if [[ "${WF_MARKERFILES,,}" != "$(cat ${MOS_READY_PATH}/markerfiles_mode)" ]]; t
     rm -f "${MOS_READY_PATH}/markerfiles.cli.completed"
 fi
 
+${WILDFLY_HOME}/enable_keystore.sh
+EXIT_CODE=$?
+if [ ${EXIT_CODE} -ne 0 ]; then
+    echoErr "keystore-test has failed"
+    exit ${EXIT_CODE}
+fi
+
 echo "${LINE}"
 
 ${WILDFLY_HOME}/add_jboss_cli.sh
