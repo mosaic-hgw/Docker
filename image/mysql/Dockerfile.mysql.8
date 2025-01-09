@@ -4,7 +4,7 @@ FROM ${TAG}
 # ###license-information-start###
 # The MOSAIC-Project - MySQL-Server
 # __
-# Copyright (C) 2009 - 2024 Institute for Community Medicine
+# Copyright (C) 2009 - 2025 Institute for Community Medicine
 # University Medicine of Greifswald - mosaic-project@uni-greifswald.de
 # __
 # This program is free software: you can redistribute it and/or modify
@@ -22,18 +22,20 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20240909"
-ARG MYSQL_VERSION="8.4.2"
-ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.17-x86_64-minimal.tar.xz"
-ARG MYSQL_SHA256="45df52c7437a9abf3b7f653e94d2c2e940e4e292698cd16d31951a783b281820"
+ARG DATE_YMD="20250106"
+ARG MYSQL_VERSION="8.4.3"
+ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.17-#ARCH-minimal.tar.xz"
+ARG MYSQL_SHA256_X86_64="b614e51fddac1bbec1dd9cf0a96fcf2426007a8dbbbc3f6b17c555e3b92b017e"
+ARG MYSQL_SHA256_AARCH64="2410925642b9fbd925e9b298183ce1f6217a70dbb262c7886751bc77fa1f28e3"
 
 ENV MYSQL_HOME="${HOME}/mysql" \
-    TTP_MYSQL_ROOT_PASSWORD="root" \
-    TTP_MYSQL_OPTS="" \
-    TTP_MYSQL_LOG_TO="CONSOLE" \
+    MYSQL_OPTS="" \
+    MYSQL_ENABLE_UPDATE_SCANNER="false" \
+    MYSQL_LOG_TO="CONSOLE" \
     \
     ENTRY_MYSQL_DATADIR="/entrypoint-mysql-data" \
     ENTRY_MYSQL_SQLS="/entrypoint-mysql-sqls" \
+    ENTRY_MYSQL_UPDATE_SQLS="/entrypoint-mysql-update-sqls" \
     ENTRY_MYSQL_MY_CNF="/entrypoint-mysql-my-cnf" \
     ENTRY_MYSQL_SOCKET="/entrypoint-mysql-socket" \
     ENTRY_MYSQL_LOGS="/entrypoint-mysql-logs"
@@ -48,32 +50,34 @@ LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
 
 # create image
 USER root
-COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["scripts", "${MYSQL_HOME}"]
-COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["help-and-usage", "${ENTRY_USAGE}/"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${MYSQL_HOME}"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}/"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
     apt-get update && \
-    apt-get upgrade -y && \
+    if [ "$(date +%F)" != "$(cat /var/log/apt/history.log | grep 'Date:' | tail -n1 | cut -d' ' -f2)" ]; then apt-get upgrade -y; register --os-updated; fi && \
     \
-    echo "> 2. install xz-utils and libraries" && \
-    apt-get install -y xz-utils libaio1 libnuma1 libncurses5 && \
-    mkdir ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_SOCKET} ${ENTRY_LOGS}/mysql && \
+    echo "> 2. install xz-utils, procps and libraries" && \
+    apt-get install -y xz-utils procps libaio1 libnuma1 libncurses5 && \
+    mkdir -m 777 ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_UPDATE_SQLS} ${ENTRY_MYSQL_SOCKET} ${ENTRY_LOGS}/mysql && \
     \
     echo "> 3. mysql-server" && \
+    ARCH="$([ "$(uname -m)" = "x86_64" ] && echo "x86_64" || echo "aarch64")" && \
+    MYSQL_DOWNLOAD_URL="$(echo ${MYSQL_DOWNLOAD_URL} | sed "s,#ARCH,${ARCH},g")" && \
+    MYSQL_SHA256="$([ "${ARCH}" = "x86_64" ] && echo "${MYSQL_SHA256_X86_64}" || echo "${MYSQL_SHA256_AARCH64}")" && \
     (curl -Lfo mysql.tar ${MYSQL_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mysql.tar ${MYSQL_DOWNLOAD_URL}\n" && exit 1)) && \
-    (sha256sum mysql.tar | grep ${MYSQL_SHA256} > /dev/null || (>&2 echo "sha256sum failed $(sha256sum mysql.tar)" && exit 1)) && \
+    (sha256sum mysql.tar | grep ${MYSQL_SHA256} > /dev/null || (>&2 echo "sha256sum(${ARCH}) failed $(sha256sum mysql.tar)" && exit 1)) && \
     tar xf mysql.tar && \
     cp -R mysql-*/* ${MYSQL_HOME}/ && \
     echo "export LD_LIBRARY_PATH=/opt/mysql/lib:/lib:/lib64:/usr/lib" > ${MYSQL_HOME}/library_path.sh && \
-    chmod +x ${MYSQL_HOME}/bin/* && \
     echo "export PATH=${MYSQL_HOME}/bin:${PATH}" > /etc/profile.d/mysql.sh && \
     \
     echo "> 4. register mysql" && \
     register \
-        --os-updated \
         --add-version="MySQL-Server:\$(${MYSQL_HOME}/bin/mysqld -V 2>/dev/null | sed -r 's/^.+Ver ([0-9\.]+) .+$/\1/' | cat)" \
         --add-entrypoint="ENTRY_MYSQL_DATADIR:${ENTRY_MYSQL_DATADIR}" \
         --add-entrypoint="ENTRY_MYSQL_SQLS:${ENTRY_MYSQL_SQLS}" \
+        --add-entrypoint="ENTRY_MYSQL_UPDATE_SQLS:${ENTRY_MYSQL_UPDATE_SQLS}" \
         --add-entrypoint="ENTRY_MYSQL_MY_CNF:${ENTRY_MYSQL_MY_CNF}" \
         --add-entrypoint="ENTRY_MYSQL_SOCKET:${ENTRY_MYSQL_SOCKET}" \
         --add-entrypoint="ENTRY_MYSQL_LOGS:${ENTRY_MYSQL_LOGS}" \
@@ -88,10 +92,11 @@ RUN cd ${MOS_TEMP_PATH} && \
     ln -s ${MYSQL_HOME}/my.cnf ${ENTRY_MYSQL_MY_CNF} && \
     ln -s ${ENTRY_LOGS}/mysql ${ENTRY_MYSQL_LOGS} && \
     ln -s ${MYSQL_HOME}/bin/* /usr/bin/ && \
-    chown ${USER}:${USER} -R ${HOME} ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_SOCKET} ${ENTRY_LOGS} ${ENTRY_MYSQL_MY_CNF} ${ENTRY_MYSQL_LOGS} ${ENTRY_USAGE} && \
-    chmod u+x -R ${HOME}/**/*.sh && \
-    chmod 644 ${MYSQL_HOME}/my.cnf && \
-    rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
+    ln -s /dev/stdout ${MYSQL_HOME}/stdout.log && \
+    chown ${USER}:${USER} -R ${MYSQL_HOME} ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_UPDATE_SQLS} \
+    	${ENTRY_MYSQL_SOCKET} ${ENTRY_MYSQL_MY_CNF} ${ENTRY_MYSQL_LOGS} ${ENTRY_USAGE} && \
+    chmod 777 ${MYSQL_HOME} && chmod 666 ${MYSQL_HOME}/my.cnf && chmod 555 -R ${MYSQL_HOME}/*.sh && \
+	rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
 
 USER ${USER}
 
