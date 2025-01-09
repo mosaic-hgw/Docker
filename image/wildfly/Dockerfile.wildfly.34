@@ -4,7 +4,7 @@ FROM ${TAG}
 # ###license-information-start###
 # The MOSAIC-Project - WildFly with MySQL-Connector and Healthcheck
 # __
-# Copyright (C) 2009 - 2024 Institute for Community Medicine
+# Copyright (C) 2009 - 2025 Institute for Community Medicine
 # University Medicine of Greifswald - mosaic-project@uni-greifswald.de
 # __
 # This program is free software: you can redistribute it and/or modify
@@ -22,21 +22,21 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20241111"
+ARG DATE_YMD="20250109"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 
-ARG WILDFLY_VERSION="34.0.0.Final"
+ARG WILDFLY_VERSION="34.0.1.Final"
 ARG WILDFLY_DOWNLOAD_URL="https://github.com/wildfly/wildfly/releases/download/${WILDFLY_VERSION}/wildfly-${WILDFLY_VERSION}.tar.gz"
-ARG WILDFLY_SHA256="374254a534cac6455897e72716d078bd58b1aa604db9e52e151279dc3626c35b"
+ARG WILDFLY_SHA256="696a39f46c02ce428b9ceb699260d360514f7e6a920e80ed33e4390bf27d0d2a"
 
 ARG MYSQL_CONNECTOR_VERSION="9.1.0"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
 ARG MYSQL_CONNECTOR_SHA256="8776e2ebc46072c9a47ea59d98298c4273bd9f16a7b26b5dfa4744535aa26c62"
 
-ARG ECLIPSELINK_VERSION="4.0.4"
+ARG ECLIPSELINK_VERSION="4.0.5"
 ARG ECLIPSELINK_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/eclipse/persistence/eclipselink/${ECLIPSELINK_VERSION}/eclipselink-${ECLIPSELINK_VERSION}.jar"
 ARG ECLIPSELINK_PATH="modules/system/layers/base/org/eclipse/persistence/main"
-ARG ECLIPSELINK_SHA256="0b0b4732b0ef0cfa6920801571b0f5eb2474cad35f7db60a226caf87132843a3"
+ARG ECLIPSELINK_SHA256="753083822643b11e8c320a00853d8ae3ae25746d49c9621a86dd964fb6ff7344"
 
 ENV WILDFLY_HOME="${HOME}/wildfly" \
     JBOSS_CLI="${HOME}/wildfly/bin/jboss-cli.sh" \
@@ -53,8 +53,9 @@ ENV WILDFLY_HOME="${HOME}/wildfly" \
     WF_ADMIN_USER="admin" \
     WF_DEBUG="false" \
     DEBUG_PORT="*:8787" \
-    JAVA_OPTS="-server -Xms1G -Xmx4G -XX:MetaspaceSize=256M -XX:MaxMetaspaceSize=1G -XX:StringTableSize=1000003 -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Djboss.modules.system.pkgs=org.jboss.byteman" \
-	WF_MAX_PARAMETERS="100000"
+    JAVA_OPTS="-server -Xms1G -Xmx6G -XX:MetaspaceSize=512M -XX:MaxMetaspaceSize=1G -XX:StringTableSize=1000003 -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Djboss.modules.system.pkgs=org.jboss.byteman" \
+	WF_MAX_PARAMETERS="100000" \
+	WF_ENABLE_HTTP2="FALSE"
 
 # annotations
 LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
@@ -67,25 +68,26 @@ LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
 
 # create folders and permissions
 USER root
-COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["scripts", "${WILDFLY_HOME}"]
-COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["help-and-usage", "${ENTRY_USAGE}/"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["scripts", "${WILDFLY_HOME}"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}/"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
-    apt-get update && \
-    apt-get upgrade -y && \
+    if [ "$(date +%F)" != "$(cat /var/log/apt/history.log | grep 'Date:' | tail -n1 | cut -d' ' -f2)" ]; then \
+		apt-get update && apt-get upgrade -y; register --os-updated; \
+	fi && \
     \
     echo "> 2. create folders and permissions" && \
-    mkdir -p ${ENTRY_WILDFLY_CLI} ${ENTRY_WILDFLY_DEPLOYS} ${ENTRY_LOGS}/wildfly && \
-    chmod go+w ${ENTRY_WILDFLY_CLI} ${ENTRY_WILDFLY_DEPLOYS} ${ENTRY_LOGS}/wildfly && \
+    mkdir -m 777 ${ENTRY_WILDFLY_CLI} ${ENTRY_WILDFLY_DEPLOYS} ${ENTRY_LOGS}/wildfly && \
     chown ${USER}:${USER} -R ${ENTRY_WILDFLY_CLI} ${ENTRY_WILDFLY_DEPLOYS} ${ENTRY_LOGS}/wildfly && \
+    ln -s ${ENTRY_LOGS}/wildfly ${ENTRY_WILDFLY_LOGS} && \
     \
     echo "> 3. install wildfly" && \
     (curl -Lfo wildfly.tar.gz ${WILDFLY_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lso wildfly.tar.gz ${WILDFLY_DOWNLOAD_URL}\n" && exit 1))  && \
     (sha256sum wildfly.tar.gz | grep -q ${WILDFLY_SHA256} || (>&2 echo "sha256sum failed $(sha256sum wildfly.tar.gz)" && exit 1)) && \
     tar xf wildfly.tar.gz && \
     cp -R wildfly-${WILDFLY_VERSION}/* ${WILDFLY_HOME}/ && \
-    mkdir -p ${WILDFLY_HOME}/standalone/log && touch ${WILDFLY_HOME}/standalone/log/server.log && \
-    chown -R ${USER}:${USER} ${WILDFLY_HOME} && chmod -R g+rw ${WILDFLY_HOME} && \
+    rm -rf ${WILDFLY_HOME}/bin/*.bat ${WILDFLY_HOME}/bin/*.ps1 ${WILDFLY_HOME}/docs && \
+    mkdir -pm 777 ${WILDFLY_HOME}/standalone/log && touch ${WILDFLY_HOME}/standalone/log/server.log && \
     \
     echo "> 4. get mysql-connector " && \
     (curl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
@@ -114,12 +116,13 @@ RUN cd ${MOS_TEMP_PATH} && \
     	/subsystem=microprofile-health-smallrye:add, \
     	/subsystem=undertow/server=default-server/ajp-listener=myListener:add(socket-binding=ajp, scheme=http, enabled=true), \
     	/subsystem=elytron/file-audit-log=local-audit:remove(), \
+    	/subsystem=logging/pattern-formatter=NO_DATE_DETAILED:add(pattern=\"%d{HH:mm:ss,SSS} %-5p %-4L [%c] (%t) %s%E%n\"), \
+    	/subsystem=logging/pattern-formatter=NO_DATE_COMPACT:add(pattern=\"%d{HH:mm:ss,SSS} %-5.5p %-4.4L %-40.40c{2.} | %m%n\"), \
     	:shutdown" || exit 1) && \
     echo -n "true" > ${MOS_READY_PATH}/markerfiles_mode && \
     \
     echo "> 7. register wildfly" && \
     register \
-      --os-updated \
       --add-version="WildFly:${WILDFLY_VERSION}" \
       --add-version="MySQL-Connector:${MYSQL_CONNECTOR_VERSION}" \
       --add-version="EclipseLink:\$(ls ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-* | sed -r 's/^.+-([0-9\.]+)\.jar$/\1/' | cat)" \
@@ -135,11 +138,12 @@ RUN cd ${MOS_TEMP_PATH} && \
     apt-get clean && \
     apt-get autoclean && \
     apt-get autoremove && \
-    mkdir ${WILDFLY_HOME}/standalone/data/addins && \
-    ln -s ${ENTRY_LOGS}/wildfly ${ENTRY_WILDFLY_LOGS} && \
+    mkdir -pm 777 ${WILDFLY_HOME}/standalone/data/addins && \
     ln -s ${WILDFLY_HOME}/standalone/data/addins ${ENTRY_WILDFLY_ADDINS} && \
-    chown ${USER}:${USER} -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_ADDINS} ${ENTRY_WILDFLY_LOGS} ${WILDFLY_HOME}/standalone/log/* ${ENTRY_USAGE} && \
-    chmod u+x -R ${HOME}/**/*.sh && \
+    chown ${USER}:${USER} -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_ADDINS} ${ENTRY_WILDFLY_LOGS} ${ENTRY_USAGE} && \
+    chmod 777 -R ${WILDFLY_HOME}/domain/configuration && \
+    chmod 777 -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_LOGS} ${ENTRY_USAGE} && \
+	chmod 555 -R ${WILDFLY_HOME}/*.sh ${WILDFLY_HOME}/**/*.sh && \
     rm -rf ${MOS_TEMP_PATH}/* ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/current/* ${WILDFLY_HOME}/standalone/log/* /var/lib/apt/lists/* /var/cache/apt/*
 
 USER ${USER}
