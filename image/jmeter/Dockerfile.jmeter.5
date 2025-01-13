@@ -1,10 +1,10 @@
-ARG TAG=mosaicgreifswald/zulujre:latest
+ARG TAG=mosaicgreifswald/zulujre:21
 FROM ${TAG}
 
 # ###license-information-start###
 # The MOSAIC-Project - Apache jMeter with many plugins
 # __
-# Copyright (C) 2009 - 2024 Institute for Community Medicine
+# Copyright (C) 2009 - 2025 Institute for Community Medicine
 # University Medicine of Greifswald - mosaic-project@uni-greifswald.de
 # __
 # This program is free software: you can redistribute it and/or modify
@@ -21,10 +21,8 @@ FROM ${TAG}
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 # ###license-information-end###
 
-MAINTAINER Ronny Schuldt <ronny.schuldt@uni-greifswald.de>
-
 # variables
-ARG DATE_YMD="20240705"
+ARG DATE_YMD="20250113"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 ARG SKIP_VULNERABILITIES_FIX="false"
 
@@ -36,13 +34,13 @@ ARG JMETER_PLUGINS_VERSION="1.4.0"
 ARG JMETER_PLUGINS_DOWNLOAD_URL="http://jmeter-plugins.org/downloads/file/JMeterPlugins-Standard-${JMETER_PLUGINS_VERSION}.zip"
 ARG JMETER_PLUGINS_SHA256="3f740bb9b9a7120ed72548071cd46a5f92929e1ab196acc1b2548549090a2148"
 
-ARG JAVA_JSON_VERSION="20240303"
+ARG JAVA_JSON_VERSION="20250107"
 ARG JAVA_JSON_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/json/json/${JAVA_JSON_VERSION}/json-${JAVA_JSON_VERSION}.jar"
-ARG JAVA_JSON_SHA256="3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed"
+ARG JAVA_JSON_SHA256="85d4c1ab192d3117fd02c7fff1ec0fe63ade45cf56def7fe950ef060cf06e99f"
 
-ARG MYSQL_CONNECTOR_VERSION="8.4.0"
+ARG MYSQL_CONNECTOR_VERSION="9.1.0"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
-ARG MYSQL_CONNECTOR_SHA256="d77962877d010777cff997015da90ee689f0f4bb76848340e1488f2b83332af5"
+ARG MYSQL_CONNECTOR_SHA256="8776e2ebc46072c9a47ea59d98298c4273bd9f16a7b26b5dfa4744535aa26c62"
 
 ARG PROMETHEUS_PLUGIN_VERSION="0.7.1"
 ARG PROMETHEUS_PLUGIN_DOWNLOAD_URL="https://github.com/johrstrom/jmeter-prometheus-plugin/releases/download/${PROMETHEUS_PLUGIN_VERSION}/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar"
@@ -51,7 +49,6 @@ ARG PROMETHEUS_PLUGIN_SHA256="597f38755cd0b3d5c1837c30fd377144387ddea56bd4d16deb
 ARG JMETER_PLUGINS_PATH="${HOME}/jmeter/lib"
 
 ENV JMETER_HOME="${HOME}/jmeter" \
-    JMETER_LOGS="${ENTRY_LOGS}/jmeter" \
     JMETER_LOG_TO_FILE="FALSE" \
     JMETER_LOG_LEVEL="INFO" \
     \
@@ -62,8 +59,7 @@ ENV JMETER_HOME="${HOME}/jmeter" \
     MOS_RUN_MODE="action"
 
 # annotations
-LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
-      org.opencontainers.image.authors="university-medicine greifswald" \
+LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
       org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/jmeter" \
       org.opencontainers.image.version="${JMETER_VERSION}-${DATE_YMD}" \
       org.opencontainers.image.vendor="uni-greifswald.de" \
@@ -72,20 +68,19 @@ LABEL maintainer="ronny.schuldt@uni-greifswald.de" \
 
 # install needed packages and create user
 USER root
-COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["scripts", "${JMETER_HOME}"]
-COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["help-and-usage", "${ENTRY_USAGE}/"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${JMETER_HOME}"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}/"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
     apt-get update && \
-    apt-get upgrade -y && \
+    if [ "$(date +%F)" != "$(cat /var/log/apt/history.log | grep 'Date:' | tail -n1 | cut -d' ' -f2)" ]; then apt-get upgrade -y; register --os-updated; fi && \
     \
-    echo "> 2. install missing packages (curl, unzip)" && \
+    echo "> 2. install unzip" && \
     apt-get install -y unzip && \
     \
     echo "> 3. create folders and permissions" && \
-    mkdir -p ${ENTRY_JMETER_TESTS} ${ENTRY_JMETER_PROPERTIES} ${JMETER_LOGS} && \
-    chmod go+w ${ENTRY_JMETER_TESTS} ${ENTRY_JMETER_PROPERTIES} ${JMETER_LOGS} && \
-    chown -R ${USER}:${USER} ${ENTRY_JMETER_TESTS} ${ENTRY_JMETER_PROPERTIES} ${JMETER_LOGS} && \
+    mkdir -pm 777 ${ENTRY_JMETER_TESTS} ${ENTRY_JMETER_PROPERTIES} ${ENTRY_LOGS}/jmeter && \
+    chown -R ${USER}:${USER} ${ENTRY_JMETER_TESTS} ${ENTRY_JMETER_PROPERTIES} ${ENTRY_LOGS}/jmeter && \
     \
     echo "> 4. apache-jmeter" && \
     (curl -LfSo apache-jmeter.zip ${JMETER_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -LfSo apache-jmeter.zip ${JMETER_DOWNLOAD_URL}" && echo && exit 1)) && \
@@ -141,7 +136,6 @@ RUN cd ${MOS_TEMP_PATH} && \
     \
     echo "> 10. register jmeter" && \
     register \
-      --os-updated \
       --add-version="jMeter:\$(${JMETER_HOME}/bin/jmeter -v 2>/dev/null | grep -oE '[0-9\.]+\.[0-9 r]+' | cat)" \
       --add-version="jMeter-Plugins:${JMETER_PLUGINS_VERSION}" \
       --add-version="java-json:${JAVA_JSON_VERSION}" \
@@ -156,11 +150,11 @@ RUN cd ${MOS_TEMP_PATH} && \
     apt-get clean && \
     apt-get autoclean && \
     apt-get autoremove && \
-    ln -s ${JMETER_LOGS} ${ENTRY_JMETER_LOGS} && \
+    ln -s ${ENTRY_LOGS}/jmeter ${ENTRY_JMETER_LOGS} && \
     ln -s ${JMETER_HOME}/bin/jmeter /usr/bin/jmeter && \
-    chown ${USER}:${USER} -R ${HOME} ${ENTRY_LOGS} ${ENTRY_JMETER_LOGS} && \
-    chmod u+x ${HOME}/**/*.sh && \
-    rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/* ${HOME}/jmeter.log \
+    chown ${USER}:${USER} -R ${JMETER_HOME} ${ENTRY_JMETER_LOGS} && \
+    chmod 777 ${JMETER_HOME} && chmod 555 -R ${JMETER_HOME}/*.sh && \
+    rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/* ${HOME}/jmeter.log
 
 USER ${USER}
 
