@@ -4,7 +4,7 @@ FROM ${TAG}
 # ###license-information-start###
 # The MOSAIC-Project
 # __
-# Copyright (C) 2009 - 2024 Institute for Community Medicine
+# Copyright (C) 2009 - 2025 Institute for Community Medicine
 # University Medicine of Greifswald - mosaic-project@uni-greifswald.de
 # __
 # This program is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20240909"
+ARG DATE_YMD="20250120"
 ARG JAVA_VERSION="21"
 ARG JAVA_DOWNLOAD_URL="https://cdn.azul.com/zulu/bin/"
 ENV JAVA_HOME="/usr/lib/jvm/zulu" \
@@ -38,33 +38,32 @@ LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
 
 # create folders and permissions
 USER root
-COPY --chown=${PROCESS_UID}:${PROCESS_GID} ["help-and-usage", "${ENTRY_USAGE}/"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}/"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
     apt-get update && \
-    apt-get upgrade -y && \
+    if [ "$(date +%F)" != "$(stat -c '%.10y' $(ls -t /var/lib/dpkg/info/*.list | head -n 1))" ]; then apt-get upgrade -y; fi && \
     \
     echo "> 2. install zulu-jre" && \
-    DEB_NAME="$(curl -s ${JAVA_DOWNLOAD_URL} | grep -oE "zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre${JAVA_VERSION}\.[0-9\.]+-linux_amd64\.deb" | sort -ruV | head -n1)" && \
+    ARCH="$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "arm64")" && \
+    DEB_NAME="$(curl -s ${JAVA_DOWNLOAD_URL} | grep -oE "zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre${JAVA_VERSION}\.[0-9\.]+-linux_${ARCH}\.deb" | sort -ruV | head -n1)" && \
     (curl -Lfo ${DEB_NAME} ${JAVA_DOWNLOAD_URL}${DEB_NAME} || (>&2 echo "curl -Lfo ${DEB_NAME} ${JAVA_DOWNLOAD_URL}${DEB_NAME}\n" && exit 1)) && \
     apt-get install -y ${MOS_TEMP_PATH}/${DEB_NAME} && \
     \
     echo "> 3. register java" && \
     mkdir -p ${JAVA_HOME}/bin && \
-    mv ${JAVA_HOME}/../zre-${JAVA_VERSION}-amd64 ${JAVA_HOME}${JAVA_VERSION} && \
+    mv ${JAVA_HOME}/../zre-${JAVA_VERSION}-${ARCH} ${JAVA_HOME}${JAVA_VERSION} && \
     for EXE_PATH in $(find "${JAVA_HOME}${JAVA_VERSION}/bin/" -type f -executable); do \
       if [ -f ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) ]; then \
         sed -ie "s-*) .*-*) ${EXE_PATH} \"\$@\" ;;-;/*)/i${JAVA_VERSION}) ${EXE_PATH} \"\$@\" ;;" ${JAVA_HOME}/bin/$(basename ${EXE_PATH}); \
       else \
         echo '#!/bin/sh\ncase "${JAVA_VERSION}" in\n'${JAVA_VERSION}') '${EXE_PATH}' "$@" ;;\n*) '${EXE_PATH}' "$@" ;;\nesac' > ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) && \
         chown ${USER}:${USER} -R ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) && \
-        chmod u+x ${JAVA_HOME}/bin/$(basename ${EXE_PATH}); \
+        chmod 555 ${JAVA_HOME}/bin/$(basename ${EXE_PATH}); \
       fi && \
       ln -sf ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) /usr/bin/$(basename ${EXE_PATH}); \
     done && \
-    register --os-updated \
-      --add-version="zulu-jre:\$(${JAVA_HOME}${JAVA_VERSION}/bin/java -version 2>&1 | head -n1 | sed -r 's/^.+\"(.+)\".+$/\1/' | cat) \$([ \"\$(grep -c \"\${JAVA_HOME}\" \${JAVA_HOME}/bin/java)\" -gt 2 ] && [ \"${JAVA_VERSION}\" = \"\${JAVA_VERSION:-\$(cat ${HOME}/default-java-version)}\" ] && echo \"(current)\")" \
-    && \
+    register --add-version="zulu-jre:\$(${JAVA_HOME}${JAVA_VERSION}/bin/java -version 2>&1 | head -n1 | sed -r 's/^.+\"(.+)\".+$/\1/' | cat) \$([ \"\$(grep -c \"\${JAVA_HOME}\" \${JAVA_HOME}/bin/java)\" -gt 2 ] && [ \"${JAVA_VERSION}\" = \"\${JAVA_VERSION:-\$(cat ${HOME}/default-java-version)}\" ] && echo \"(current)\")" && \
     if [ -f "${HOME}/default-java-version" ]; then ENTRY_JAVA_CACERTS="${JAVA_HOME}$(cat ${HOME}/default-java-version)/lib/security/cacerts"; \
     else register --add-entrypoint="ENTRY_JAVA_CACERTS:${ENTRY_JAVA_CACERTS}"; fi && \
     echo -n "${JAVA_VERSION}" > ${HOME}/default-java-version && \
@@ -72,7 +71,8 @@ RUN cd ${MOS_TEMP_PATH} && \
     echo "> 4. cleanup" && \
     apt-get clean && \
     apt-get autoclean && \
-    apt-get autoremove && \
+    apt-get autoremove -y && \
+    chmod 666 ${HOME}/default-java-version && \
     chown ${USER}:${USER} -R ${ENTRY_USAGE} && \
     ln -sf ${JAVA_HOME}${JAVA_VERSION}/lib/security/cacerts ${ENTRY_JAVA_CACERTS} && \
     rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
