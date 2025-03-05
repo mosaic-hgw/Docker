@@ -21,7 +21,7 @@ FROM debian:stable-slim
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20241204"
+ARG DATE_YMD="20250305"
 ARG WAIT_FOR_IT_DOWNLOAD_URL="https://raw.githubusercontent.com/vishnubob/wait-for-it/ed77b63706ea721766a62ff22d3a251d8b4a6a30/wait-for-it.sh"
 ARG WAIT_FOR_IT_SHA256="2ea7475e07674e4f6c1093b4ad6b0d8cbbc6f9c65c73902fb70861aa66a6fbc0"
 
@@ -74,7 +74,6 @@ RUN cd ${HOME} && \
     \
     echo "> 7. create versions and entrypoints" && \
     /bin/bash ${HOME}/register.sh \
-      --os-updated \
       --add-version="Architecture:$(uname -m)" \
       --add-version='Distribution:$(cat /etc/os-release | grep -E "^NAME" | cut -d"\"" -f2 ) $(cat /etc/debian_version)' \
       --add-entrypoint="ENTRY_LOGS:${ENTRY_LOGS}" && \
@@ -82,9 +81,9 @@ RUN cd ${HOME} && \
     echo "> 8. cleanup" && \
     apt-get clean && \
     apt-get autoclean && \
-    apt-get autoremove && \
+    apt-get autoremove -y && \
     chown ${USER}:${USER} -R ${HOME} ${MOS_READY_PATH} ${ENTRY_LOGS} ${ENTRY_USAGE} && \
-    chmod 777 ${HOME} && chmod 444 -R ${HOME}/*.txt && chmod 555 -R ${HOME}/*.sh && \
+    chmod 777 ${HOME} && chmod 444 -R ${HOME}/*.txt && chmod 755 -R ${HOME}/*.sh && \
     rm -rf install.log ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
 
 WORKDIR ${HOME}
