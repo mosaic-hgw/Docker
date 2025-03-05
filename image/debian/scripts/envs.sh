@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# get colors
-source ${HOME}/colors.sh
+# get commons
+source ${HOME}/commons.sh
 HEADER="${NC}${UNDERLINE}${WHITE}"
 
 usage() {
@@ -12,7 +12,7 @@ usage() {
  Options:
         | --csv-format        Outputs the table as a csv list and includes --dont-cut-values.
         | --dont-cut-values   Does not cut off the current value.
-        | --show-old-unused   Do not show obsolete variables if they are not used.
+        | --show-old-unused   Display obsolete variables, even if they are not used.
     -h  | --help              View this informations.
 "
 }
@@ -46,7 +46,7 @@ while read -r STATE ENV_NAME VALUE_OR_OLDKEY; do
     "#>deleted-env<")    DELETED_ENVS[${ENV_NAME}]="${VALUE_OR_OLDKEY}";;
   esac
   ALL_ENVS+=("${ENV_NAME}")
-done < <(find /entrypoint-* "${HOME}" -maxdepth 4 -type f \( -iname '*.cli' -o -iname '*.env' -o -iname '*.sh' \) -exec grep -E "^#>(.+)-env<" {} \; | sed 's/\r//')
+done < <(find /entrypoint-* "${HOME}" -maxdepth 4 -type f \( -iname '*.cli*' -o -iname '*.env' -o -iname '*.sh' \) -exec grep -E "^#>(.+)-env<" {} \; | sed 's/\r//')
 
 # sort ALL_ENVS
 IFS=$'\n' ALL_ENVS=($(sort -u <<<"${ALL_ENVS[*]}"))

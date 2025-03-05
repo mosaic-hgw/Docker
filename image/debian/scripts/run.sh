@@ -1,19 +1,23 @@
 #!/bin/bash
 
-# get colors
-source ${HOME}/colors.sh
+#>available-env< TZ Europe/Berlin
+
+# get commons
+source ${HOME}/commons.sh
 
 # show versions
-echo "${LINE}"; echo
-echo "  https://hub.docker.com/repository/docker/mosaicgreifswald"
-echo; echo "${LINE}"; echo
-versions
-echo; echo "${LINE}"; echo
+echo -e "${LINE}\n\n  https://hub.docker.com/repository/docker/mosaicgreifswald\n\n${LINE}\n\n$(versions)\n\n${LINE}"
 
-# test permissions
-echoInfo "test write-permission in folder ${ENTRY_LOGS}"
-find ${ENTRY_LOGS} -maxdepth 2 -type d -exec realpath {} \; | while read DIR; do
-  (touch ${DIR}/test.write.permission && rm ${DIR}/test.write.permission) 2>/dev/null && echoInfo "- ${DIR} -> ok" || echoErr "- ${DIR} -> not permitted"
+# test entrypoints write permissions
+echoInfo "test write-permission in entrypoints"
+entrypoints | awk '{print $3}' | grep -v '^$' | while read DIR; do
+  if [ -w "$(realpath "${DIR}")" ]; then
+    echoInfo "- ${DIR} -> ok $(mount | grep -q " $(realpath "${DIR}") " && echo "(volume/mount)")"
+  elif mount | grep -q " ${DIR} "; then
+    echoErr "- ${DIR} -> not permitted (volume/mount)"
+  else
+    echoWarn "- ${DIR} -> not permitted"
+  fi
 done
 echo "${LINE}"
 
@@ -29,27 +33,27 @@ while read STATE VAR_OLD VAR_NEW; do if env | grep -q "^${VAR_OLD}="; then
   fi
   [ "${VAR_NEW}x" != "x" ] && echoInfo "  -> Use instead: ${VAR_NEW}"
 fi; done < <(find /entrypoint-* ${HOME} -maxdepth 4 -type f \( -iname '*.cli' -o -iname '*.env' -o -iname '*.sh' \) -exec grep -E "^#>de(preca|le)ted-env<" {} \; | sed 's/\r//')
-[ "${ENV_ALL_FINE}" = "y" ] && echoSuc "everything is fine."
+[ "${ENV_ALL_FINE}" = "y" ] && echoSuc "environment-variables are fine."
 echo "${LINE}"
 
 # get run-scripts
 RUN_SCRIPTS=$(cat "${HOME}/run.sh" | sed -n "/^### registered run-scripts/,//p" | tail -n+2 | sed "s/#//" | sort -k1 --sort=version)
 echoInfo "$(echo "${RUN_SCRIPTS}" | wc -w) run-script(s) found to execute in following order and type"
 for RUN_SCRIPT in ${RUN_SCRIPTS}; do echoInfo "- ${RUN_SCRIPT}"; done
-
-if [ $(echo ${RUN_SCRIPTS} | wc -w) -eq 0 ]; then
+if [ "$(echo ${RUN_SCRIPTS} | wc -w)" -eq "0" ]; then
   echoErr "no run-scripts found to start"
   exit
 fi
+echo "${LINE}"
 
-PROCESS_PIDS=()
+MOSAIC_PIDS=()
 checkRunningServices() {
   local EXIT_CODE
-  if [ ${#PROCESS_PIDS[@]} -gt 0 ]; then for PID in "${!PROCESS_PIDS[@]}"; do if ! ls /proc/${PID}/exe > /dev/null 2>&1; then
+  if [ ${#MOSAIC_PIDS[@]} -gt 0 ]; then for PID in "${!MOSAIC_PIDS[@]}"; do if ! ls /proc/${PID}/exe > /dev/null 2>&1; then
     wait ${PID}
     EXIT_CODE=$?
-    echoErr "$(echo "${PROCESS_PIDS[$PID]}" | cut -d: -f1) is stopped (with exit-code ${EXIT_CODE})."
-    unset "PROCESS_PIDS[PID]"
+    echoErr "$(echo "${MOSAIC_PIDS[$PID]}" | cut -d: -f1) is stopped (with exit-code ${EXIT_CODE})."
+    unset "MOSAIC_PIDS[PID]"
     update_process_pids
     return ${EXIT_CODE}
   fi; done; fi
@@ -57,11 +61,11 @@ checkRunningServices() {
 }
 
 stopRunningServices() {
-  if [ ${#PROCESS_PIDS[@]} -gt 0 ]; then for PID in "${!PROCESS_PIDS[@]}"; do if ls /proc/${PID}/exe > /dev/null 2>&1; then
-    echoInfo "stop $(echo "${PROCESS_PIDS[$PID]}" | cut -d: -f1)"
+  if [ ${#MOSAIC_PIDS[@]} -gt 0 ]; then for PID in "${!MOSAIC_PIDS[@]}"; do if ls /proc/${PID}/exe > /dev/null 2>&1; then
+    echoInfo "stop $(echo "${MOSAIC_PIDS[$PID]}" | cut -d: -f1)"
     local PGID; PGID="$(awk '{print $5}' /proc/${PID}/stat)"
     kill -TERM -$PGID
-    unset "PROCESS_PIDS[PID]"
+    unset "MOSAIC_PIDS[PID]"
     update_process_pids
   fi; done; fi
 }
@@ -73,8 +77,9 @@ startService() {
 
   if [ "x${STARTED_SCRIPT}" != "x" ]; then
     echoInfo "start service ${SCRIPT} and wait for running with ${STARTED_SCRIPT}"
+    echoDeb "${SCRIPT} &"
     ${SCRIPT} &
-    PROCESS_PIDS[$!]="${1}"
+    MOSAIC_PIDS[$!]="${1}"
     update_process_pids
     while ! ${STARTED_SCRIPT} ; do
       checkRunningServices
@@ -84,8 +89,9 @@ startService() {
     done
   else
     echoInfo "start service ${SCRIPT}"
+    echoDeb "${SCRIPT} &"
     ${SCRIPT} &
-    PROCESS_PIDS[$!]="${1}"
+    MOSAIC_PIDS[$!]="${1}"
     update_process_pids
     EXIT_CODE=0 # ok
   fi
@@ -96,21 +102,22 @@ startService() {
 startAction() {
   local SCRIPT; SCRIPT="${1}"
   echoInfo "start action ${SCRIPT}"
+  echoDeb "${SCRIPT} &"
   ${SCRIPT} &
   local PID=$!
-  PROCESS_PIDS[${PID}]="${SCRIPT}"
+  MOSAIC_PIDS[${PID}]="${SCRIPT}"
   update_process_pids
   wait ${PID}
   local EXIT_CODE=$?
-  unset "PROCESS_PIDS[PID]"
+  unset "MOSAIC_PIDS[PID]"
   update_process_pids
   return ${EXIT_CODE}
 }
 
 update_process_pids() {
   echo -n "" > ${HOME}/process_pids
-  if [ ${#PROCESS_PIDS[@]} -gt 0 ]; then for PID in "${!PROCESS_PIDS[@]}"; do
-    echo "${PID}=$(echo "${PROCESS_PIDS[$PID]}" | cut -d: -f1)" >> ${HOME}/process_pids
+  if [ ${#MOSAIC_PIDS[@]} -gt 0 ]; then for PID in "${!MOSAIC_PIDS[@]}"; do
+    echo "${PID}=$(echo "${MOSAIC_PIDS[$PID]}" | cut -d: -f1)" >> ${HOME}/process_pids
   done; fi
 }
 
@@ -151,22 +158,29 @@ for RUN_SCRIPT in ${RUN_SCRIPTS}; do
   esac
 done
 
+#>available-env< MOS_RUN_MODE service
 if [ "${MOS_RUN_MODE}" == "action" ]; then
   stopRunningServices
   exit 0
 fi
 
 echoSuc "all services started$([ "${SECONDS}" -gt "0" ] && echo " (${SECONDS}s)")"
+
+#>available-env< MOS_SHUTDOWN_DELAY service
+if [ -n "${MOS_SHUTDOWN_DELAY}" ]; then
+  START_TIME=$(date +%s)
+  echoWarn "shutdown all services in ${MOS_SHUTDOWN_DELAY}s"
+fi
+
 while true; do
   case "${MOS_RUN_MODE}" in
     service)
-      if [ ${#PROCESS_PIDS[@]} -gt 0 ]; then for PID in "${!PROCESS_PIDS[@]}"; do if ! ls /proc/${PID}/exe > /dev/null 2>&1; then
-        echo "$(echo "${PROCESS_PIDS[$PID]}" | cut -d: -f1) ${SCRIPT}"
-        #startService "${PROCESS_PIDS[$PID]}"
-        if ! startService "${PROCESS_PIDS[$PID]}"; then
+      if [ ${#MOSAIC_PIDS[@]} -gt 0 ]; then for PID in "${!MOSAIC_PIDS[@]}"; do if ! ls /proc/${PID}/exe > /dev/null 2>&1; then
+        echo "$(echo "${MOSAIC_PIDS[$PID]}" | cut -d: -f1) ${SCRIPT}"
+        if ! startService "${MOSAIC_PIDS[$PID]}"; then
           echoErr "cannot restart service. abort all processes."
         fi
-        unset "PROCESS_PIDS[PID]"
+        unset "MOSAIC_PIDS[PID]"
       fi; done; fi
       ;;
     cascade)
@@ -180,6 +194,16 @@ while true; do
       # do nothing
       ;;
   esac
+
+  if [ -n "${MOS_SHUTDOWN_DELAY}" ]; then
+    CURRENT_TIME=$(date +%s)
+    if [ "$((CURRENT_TIME - START_TIME))" -ge "${MOS_SHUTDOWN_DELAY}" ]; then
+      echoWarn "shutdown all services"
+      stopRunningServices
+      exit 0
+    fi
+  fi
+
   sleep 5
 done
 

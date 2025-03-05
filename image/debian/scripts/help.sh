@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# get colors
-source $(dirname $(realpath $0))/colors.sh
+# get commons
+source $(dirname $(realpath $0))/commons.sh
 
 HEADER="${NC}${UNDERLINE}${WHITE}"
 TEXT="${NC}"
@@ -68,13 +68,12 @@ echo -e "
 
 
  > ${CODE}docker run --rm ${CYAN}mosaicgreifswald/wildfly:26 ${BLUE}versions${DARK_GRAY}
- last updated               : 2023-12-19 14:56:32
- Distribution               : Debian GNU/Linux 12.4
- zulu-jre                   : 17.0.9
- WildFly                    : 26.1.3.Final
- MySQL-Connector            : 8.0.33
- EclipseLink                : 2.7.14
- KeyCloak-Client            : 19.0.2
+ last updated               : 2024-11-11 13:24:31
+ Distribution               : Debian GNU/Linux 12.8
+ zulu-jre                   : 21.0.5
+ WildFly                    : 34.0.0.Final
+ MySQL-Connector            : 9.1.0
+ EclipseLink                : 4.0.4
 
  ${HEADER}Additional help and examples:${NC}${TEXT}
 

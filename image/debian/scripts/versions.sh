@@ -1,2 +1,2 @@
 #!/bin/bash
-echo "  last updated               : 2000-01-01 00:00:00"
+echo "  last updated               : $(stat -c '%.19y' $(ls -t /var/lib/dpkg/info/*.list | head -n 1))"

@@ -43,7 +43,8 @@ echoCol() {
   local -n COLOR=${3:-DEFAULT}
   local CALLER_LINE=${4}
   local LINE=""
-  LINE="${COLOR}$(date +%X.%3N) "
+  LINE="${COLOR}"
+  ! [[ ${MOS_NO_TIME,,} =~ ^(true|yes|on|1)$ ]] && LINE="${LINE}$(date +%X.%3N) "
   [[ ${MOS_DEBUG,,} =~ ^(true|yes|on|1)$ ]] && LINE="${LINE}[${SELF_NAME}${CALLER_LINE}] "
   case $NEW_LINE in
     1 | true) echo -e "${LINE}$1${NC}" ;;
