@@ -3,7 +3,7 @@
 module add \
   --name=com.oracle \
   --dependencies=javax.api,javax.transaction.api \
-  --resources=/entrypoint-wildfly-cli/ext/ojdbc11-23.6.0.24.10.jar
+  --resources=/entrypoint-wildfly-cli/ext/ojdbc11-23.7.0.25.01.jar
 
 /subsystem=datasources/jdbc-driver=oracle:add( \
   driver-name="oracle", \

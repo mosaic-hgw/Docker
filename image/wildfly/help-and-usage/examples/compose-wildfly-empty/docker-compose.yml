@@ -20,7 +20,7 @@ services:
     environment:
       WF_ADMIN_PASS: top-secret
     volumes:
-#      - ./addins:/entrypoint-wildfly-addins
+      - ./addins:/entrypoint-wildfly-addins
       - ./deployments:/entrypoint-wildfly-deployments
       - ./jboss:/entrypoint-wildfly-cli
       - ./logs:/entrypoint-wildfly-logs

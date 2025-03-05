@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# get colors
-source ${HOME}/colors.sh
+# get commons
+source ${HOME}/commons.sh
 
 if [ ! -f "${MOS_READY_PATH}/admin.created" ]; then
     echo "${LINE}"
-    if [ -z "${WF_NO_ADMIN}" ]; then
+    if [ -z "${WF_NO_ADMIN}" ] || [[ ${WF_NO_ADMIN,,} =~ ^(false|no|off|0)$ ]]; then
         echoSuc "You can configure this WildFly-Server using:"
         echoSuc "  Username: ${WF_ADMIN_USER}"
         if [ -z "${WF_ADMIN_PASS}" ]; then

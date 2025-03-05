@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# get colors
-source ${HOME}/colors.sh
+# get commons
+source ${HOME}/commons.sh
 
 if [ -f "${ENTRY_WILDFLY_SERVER_KEYSTORE}" ]; then
     echo "${LINE}"

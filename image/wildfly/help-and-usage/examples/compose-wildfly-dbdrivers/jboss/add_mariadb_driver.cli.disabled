@@ -3,7 +3,7 @@
 module add \
   --name=org.mariadb \
   --dependencies=javax.api,javax.transaction.api \
-  --resources=/entrypoint-wildfly-cli/ext/mariadb-java-client-3.5.0.jar
+  --resources=/entrypoint-wildfly-cli/ext/mariadb-java-client-3.5.2.jar
  
 /subsystem=datasources/jdbc-driver=mariadb:add( \
   driver-name="mariadb", \

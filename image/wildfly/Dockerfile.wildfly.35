@@ -22,12 +22,12 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20250123"
+ARG DATE_YMD="20250304"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 
-ARG WILDFLY_VERSION="35.0.0.Final"
+ARG WILDFLY_VERSION="35.0.1.Final"
 ARG WILDFLY_DOWNLOAD_URL="https://github.com/wildfly/wildfly/releases/download/${WILDFLY_VERSION}/wildfly-${WILDFLY_VERSION}.tar.gz"
-ARG WILDFLY_SHA256="2b0a10b3d3f096fd8cda6887f66491114248a0b070d0b9c5ea67ad4ae0d8edf3"
+ARG WILDFLY_SHA256="45444ac28f33ee17101cf80b9eff7994f6fd0f2c8fbb4749627d9cec1cbdbc2e"
 
 ARG MYSQL_CONNECTOR_VERSION="9.2.0"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
@@ -68,7 +68,7 @@ LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
 
 # create folders and permissions
 USER root
-COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["scripts", "${WILDFLY_HOME}"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${WILDFLY_HOME}"]
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}/"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
@@ -86,7 +86,7 @@ RUN cd ${MOS_TEMP_PATH} && \
     (sha256sum wildfly.tar.gz | grep -q ${WILDFLY_SHA256} || (>&2 echo "sha256sum failed $(sha256sum wildfly.tar.gz)" && exit 1)) && \
     tar xf wildfly.tar.gz && \
     cp -R wildfly-${WILDFLY_VERSION}/* ${WILDFLY_HOME}/ && \
-    rm -rf ${WILDFLY_HOME}/bin/*.bat ${WILDFLY_HOME}/bin/*.ps1 ${WILDFLY_HOME}/docs && \
+    #rm -rf ${WILDFLY_HOME}/bin/*.bat ${WILDFLY_HOME}/bin/*.ps1 ${WILDFLY_HOME}/docs && \
     mkdir -pm 777 ${WILDFLY_HOME}/standalone/log && touch ${WILDFLY_HOME}/standalone/log/server.log && \
     \
     echo "> 4. get mysql-connector " && \
@@ -116,10 +116,13 @@ RUN cd ${MOS_TEMP_PATH} && \
     	/subsystem=microprofile-health-smallrye:add, \
     	/subsystem=undertow/server=default-server/ajp-listener=myListener:add(socket-binding=ajp, scheme=http, enabled=true), \
     	/subsystem=elytron/file-audit-log=local-audit:remove(), \
+    	/subsystem=logging/pattern-formatter=DATE_DETAILED:add(pattern=\"%d %-5p %-4L [%c] (%t) %s%E%n\"), \
+    	/subsystem=logging/pattern-formatter=DATE_COMPACT:add(pattern=\"%d %-5.5p %-4.4L %-40.40c{2.} | %m%n\"), \
     	/subsystem=logging/pattern-formatter=NO_DATE_DETAILED:add(pattern=\"%d{HH:mm:ss,SSS} %-5p %-4L [%c] (%t) %s%E%n\"), \
     	/subsystem=logging/pattern-formatter=NO_DATE_COMPACT:add(pattern=\"%d{HH:mm:ss,SSS} %-5.5p %-4.4L %-40.40c{2.} | %m%n\"), \
     	:shutdown" || exit 1) && \
     echo -n "true" > ${MOS_READY_PATH}/markerfiles_mode && \
+    cp ${WILDFLY_HOME}/standalone/configuration/standalone.xml ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/standalone.${USER}.xml && \
     \
     echo "> 7. register wildfly" && \
     register \
@@ -143,7 +146,7 @@ RUN cd ${MOS_TEMP_PATH} && \
     chown ${USER}:${USER} -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_ADDINS} ${ENTRY_WILDFLY_LOGS} ${ENTRY_USAGE} && \
     chmod 777 -R ${WILDFLY_HOME}/domain/configuration && \
     chmod 777 -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_LOGS} ${ENTRY_USAGE} && \
-	chmod 555 -R ${WILDFLY_HOME}/*.sh ${WILDFLY_HOME}/**/*.sh && \
+	chmod 755 -R ${WILDFLY_HOME}/*.sh ${WILDFLY_HOME}/**/*.sh && \
     rm -rf ${MOS_TEMP_PATH}/* ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/current/* ${WILDFLY_HOME}/standalone/log/* /var/lib/apt/lists/* /var/cache/apt/*
 
 USER ${USER}

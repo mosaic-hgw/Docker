@@ -16,6 +16,11 @@ if (result ~= "(?i)(trace|debug|info|warn|error|fatal)") of :resolve-expression(
 	/subsystem=logging/root-logger=ROOT:write-attribute(name=level,value=$logLevel)
 end-if
 
+#>available-env< WF_SYSTEM_LOG_PATTERN %d %-5.5p %-4.4L %-40.40c{2.} | %m%n
+set logPattern="%d %-5.5p %-4.4L %-40.40c{2.} | %m%n"
+if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSTEM_LOG_PATTERN})
+	set logPattern=${env.WF_SYSTEM_LOG_PATTERN}
+end-if
 #>deprecated-env< WF_CONSOLE_LOG_TO_FILE WF_SYSTEM_LOG_TO
 if (result ~= "(?i)(on|true|yes|1)") of :resolve-expression(expression=${env.WF_CONSOLE_LOG_TO_FILE})
     set logTo="file"
@@ -31,20 +36,11 @@ if (result ~= "(?i).*console.*") of :resolve-expression(expression=$logTo)
 else
 	/subsystem=logging/root-logger=ROOT:remove-handler(name="CONSOLE")
 end-if
+/subsystem=logging/root-logger=ROOT:remove-handler(name="FILE")
 if (result ~= "(?i).*file.*") of :resolve-expression(expression=$logTo)
     echo \>\>\> add system-logger as separate file (system.log)
-else
-	/subsystem=logging/root-logger=ROOT:remove-handler(name="FILE")
-end-if
-
-# enable microprofile-health
-#############################
-echo \>\>\> enable microprofile-health
-if (outcome != "success") of /subsystem=microprofile-health-smallrye:read-resource
-    /extension=org.wildfly.extension.microprofile.health-smallrye:add
-    /subsystem=microprofile-health-smallrye:add
-else
-    echo \<\<\< microprofile-health already exists
+	/subsystem=logging/custom-handler=system-file-handler:add(class=org.jboss.logmanager.handlers.PeriodicSizeRotatingFileHandler, module=org.jboss.logmanager, formatter=$logPattern, properties={rotateSize=10240000,maxBackupIndex=20,append=true,suffix=".yyyy-MM-dd",fileName="${jboss.server.log.dir}/system/system.log"})
+    /subsystem=logging/root-logger=ROOT:add-handler(name="system-file-handler")
 end-if
 
 # Set WSDL address to use incoming request address
@@ -93,7 +89,11 @@ if (outcome == "success") of :resolve-expression(expression=${env.WF_MAX_CHILD_E
 end-if
 if (result ~= "[0-9]+") of :resolve-expression(expression=$temp)
 	echo \>\>\> set max-child-elements to $temp
-	/system-property=org.apache.cxf.stax.maxChildElements:add(value=$temp)
+    try
+    	/system-property=org.apache.cxf.stax.maxChildElements:add(value=$temp)
+    catch
+    	/system-property=org.apache.cxf.stax.maxChildElements:write-attribute(name=value,value=$temp)
+    end-try
 end-if
 
 # set custom blocking-timeout
@@ -102,7 +102,11 @@ end-if
 if (result ~= "[0-9]+") of :resolve-expression(expression=${env.WF_BLOCKING_TIMEOUT})
     set temp=${env.WF_BLOCKING_TIMEOUT}
     echo \>\>\> set blocking-timeout to $temp seconds
-    /system-property=jboss.as.management.blocking.timeout:add(value=$temp)
+    try
+    	/system-property=jboss.as.management.blocking.timeout:add(value=$temp)
+    catch
+    	/system-property=jboss.as.management.blocking.timeout:write-attribute(name=value,value=$temp)
+    end-try
 end-if
 
 # set custom transaction-timeout
@@ -114,10 +118,21 @@ if (result ~= "[0-9]+") of :resolve-expression(expression=${env.WF_TRANSACTION_T
     /subsystem=transactions/:write-attribute(name=default-timeout,value=$temp)
 end-if
 
+# set custom datasources-query-timeout
+#######################################
+#>available-env< WF_DATASOURCES_QUERY_TIMEOUT 30
+if (result ~= "[0-9]+") of :resolve-expression(expression=${env.WF_DATASOURCES_QUERY_TIMEOUT})
+    set temp=${env.WF_DATASOURCES_QUERY_TIMEOUT}
+	for ds in /subsystem=datasources:read-children-names(child-type=data-source)
+    	echo \>\>\> set datasource-query-timeout for $ds to $temp seconds
+    	/subsystem=datasources/data-source=$ds:write-attribute(name=query-timeout, value=$temp)
+    done
+end-if
+
 # enable-http2
 ###############
 #>deprecated-env< WF_DISABLE_HTTP2 WF_ENABLE_HTTP2
-#>available-env< WF_ENABLE_HTTP2 TRUE
+#>available-env< WF_ENABLE_HTTP2 FALSE
 set temp=true
 if (result ~= "(?i)(on|true|yes|1)") of :resolve-expression(expression=${env.WF_DISABLE_HTTP2})
 	set temp=false
@@ -132,11 +147,3 @@ if (result ~= "(?i)(off|false|no|0)") of :resolve-expression(expression=$temp)
     /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=enable-http2,value=false)
     /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=allow-unescaped-characters-in-url,value=true)
 end-if
-
-# Global-Modules
-#################
-echo \>\>\> add global-modules for SOAP-KeyCloak
-/subsystem=ee/:list-add(name=global-modules,value={name=org.apache.cxf.impl,slot=main})
-/subsystem=ee/:list-add(name=global-modules,value={name=org.wildfly.security.elytron-http-oidc,slot=main})
-/subsystem=ee/:list-add(name=global-modules,value={name=io.undertow.servlet,slot=main})
-/subsystem=ee/:list-add(name=global-modules,value={name=io.undertow.core,slot=main})

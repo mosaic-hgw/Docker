@@ -3,7 +3,7 @@
 module add \
   --name=com.ibm.db2 \
   --dependencies=javax.api,javax.transaction.api \
-  --resources=/entrypoint-wildfly-cli/ext/jcc-11.5.9.0.jar
+  --resources=/entrypoint-wildfly-cli/ext/jcc-12.1.0.0.jar
 
 /subsystem=datasources/jdbc-driver=ibmdb2:add( \
   driver-name="ibmdb2", \

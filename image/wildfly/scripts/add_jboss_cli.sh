@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# get colors
-source ${HOME}/colors.sh
+# get commons
+source ${HOME}/commons.sh
 
 SECONDS=0
 if [ "$WF_ADD_CLI_FILTER" ]; then
