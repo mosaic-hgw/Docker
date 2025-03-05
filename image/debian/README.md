@@ -26,16 +26,19 @@ register \
 
 
 ## Relevant ENV variables
-| Category   | Variable     | Available values or scheme            | Default       |
-|------------|--------------|---------------------------------------|---------------|
-| Optimizing | TZ           | \<STRING\>                            | Europe/Berlin |
-| Optimizing | MOS_RUN_MODE | action / service / cascade / external | service       |
+| Category   | Variable           | Available values or scheme            | Default       |
+|------------|--------------------|---------------------------------------|---------------|
+| Optimizing | TZ                 | \<STRING\>                            | Europe/Berlin |
+| Optimizing | MOS_RUN_MODE       | action / service / cascade / external | service       |
+| Testing    | MOS_SHUTDOWN_DELAY | \<SECONDS\>                           |               |
 
 The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does not affect the individual layer, but the behaviour in the whole image:
 - `action` will wait until all action-run-scripts are successful finished and then also stop the service-run-scripts
 - `service` starts all run-scripts and tries to restart services if they quit
 - `cascade` like `service` but also stops all other services as soon as a service ends
 - `external` like `service` but does not restart a ended service nor does it stop the others
+
+The `MOS_SHUTDOWN_DELAY` variable defines the duration, in seconds, after which all services should be gracefully terminated.
 
 ## Relevant Entrypoints
 | Path                       | ref. ENV-Variable | Type   | Purpose                                                                          |
@@ -63,7 +66,7 @@ The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does no
 ## Current Software-Versions on this Image
 | Date               | Tags                                                                                                                                                             | Changes                                                                    |
 |--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| 2025-01-24<br><br> | `12.9`, `12`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/9dad6c899b6916d11f504a1ec8ec227f0b7c5fde/image/debian/Dockerfile.debian))<br><br> | **Debian** 12.9 "bookworm"<br>added support for docker-parameter --user/-u |
+| 2025-03-05<br><br> | `12.9`, `12`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/d5ee0894caa3033284d3caaf4d6373a8810cfb96/image/debian/Dockerfile.debian))<br><br> | **Debian** 12.9 "bookworm"<br>added support for docker-parameter --user/-u |
 | 2025-01-13         | `12.8`                                                                                                                                                           | **Debian** 12.8 "bookworm"                                                 |
 | 2024-09-09         | `12.7` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/75e66a88eb961ca664eb754cb9c0c20ee9197c3d/image/debian/Dockerfile.debian))                         | **Debian** 12.7 "bookworm"                                                 |
 | 2024-07-22         | `12.6` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/d60333bba59fc8c1c6dbbcb3cad5b6180e3e5105/image/debian/Dockerfile.debian))                         | **Debian** 12.6 "bookworm"                                                 |
