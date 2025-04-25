@@ -25,18 +25,26 @@ FROM ${TAG}
 ARG DATE_YMD="20250425"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 
-ARG WILDFLY_VERSION="35.0.1.Final"
+ARG WILDFLY_VERSION="36.0.0.Final"
 ARG WILDFLY_DOWNLOAD_URL="https://github.com/wildfly/wildfly/releases/download/${WILDFLY_VERSION}/wildfly-${WILDFLY_VERSION}.tar.gz"
-ARG WILDFLY_SHA256="45444ac28f33ee17101cf80b9eff7994f6fd0f2c8fbb4749627d9cec1cbdbc2e"
+ARG WILDFLY_SHA256="348d17ead028b09a28b11aa271b99f27105e051db89b6fd2ecdaf2b2c736e009"
 
 ARG MYSQL_CONNECTOR_VERSION="9.3.0"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
 ARG MYSQL_CONNECTOR_SHA256="6c8e6692b521376d89bc5618c16cdeaf8c61854329f4fa25677ed08776c5bb76"
 
-ARG ECLIPSELINK_VERSION="4.0.5"
+ARG MARIADB_CONNECTOR_VERSION="3.5.3"
+ARG MARIADB_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/mariadb/jdbc/mariadb-java-client/${MARIADB_CONNECTOR_VERSION}/mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar"
+ARG MARIADB_CONNECTOR_SHA256="85c4ba2f221d0dfd439c26affbb294f784960763544263c65aba9c2c76858706"
+
+ARG PSQL_CONNECTOR_VERSION="42.7.5"
+ARG PSQL_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/postgresql/postgresql/${PSQL_CONNECTOR_VERSION}/postgresql-${PSQL_CONNECTOR_VERSION}.jar"
+ARG PSQL_CONNECTOR_SHA256="69020b3bd20984543e817393f2e6c01a890ef2e37a77dd11d6d8508181d079ab"
+
+ARG ECLIPSELINK_VERSION="4.0.6"
 ARG ECLIPSELINK_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/eclipse/persistence/eclipselink/${ECLIPSELINK_VERSION}/eclipselink-${ECLIPSELINK_VERSION}.jar"
 ARG ECLIPSELINK_PATH="modules/system/layers/base/org/eclipse/persistence/main"
-ARG ECLIPSELINK_SHA256="753083822643b11e8c320a00853d8ae3ae25746d49c9621a86dd964fb6ff7344"
+ARG ECLIPSELINK_SHA256="b341c6960545c44be9ebd743e500f2673c198cb0e5e6dc8aa316f22c3fe3a93f"
 
 ENV WILDFLY_HOME="${HOME}/wildfly" \
     JBOSS_CLI="${HOME}/wildfly/bin/jboss-cli.sh" \
@@ -89,11 +97,19 @@ RUN cd ${MOS_TEMP_PATH} && \
     #rm -rf ${WILDFLY_HOME}/bin/*.bat ${WILDFLY_HOME}/bin/*.ps1 ${WILDFLY_HOME}/docs && \
     mkdir -pm 777 ${WILDFLY_HOME}/standalone/log && touch ${WILDFLY_HOME}/standalone/log/server.log && \
     \
-    echo "> 4. get mysql-connector " && \
+    echo "> 4.1 get mysql-connector " && \
     (curl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
     tar xf mysql-connector-java.tar.gz && \
     mv mysql-connector-j-*/mysql*jar ./mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar && \
     (sha256sum mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar | grep -q ${MYSQL_CONNECTOR_SHA256} || (>&2 echo "sha256sum failed $(sha256sum mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar)" && exit 1)) && \
+    \
+    echo "> 4.2 get mariadb-connector " && \
+    (curl -Lfo mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar ${MARIADB_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar ${MARIADB_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
+    (sha256sum mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar | grep -q ${MARIADB_CONNECTOR_SHA256} || (>&2 echo "sha256sum failed $(sha256sum mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar)" && exit 1)) && \
+    \
+    echo "> 4.3 get postgresql-connector " && \
+    (curl -Lfo postgresql-${PSQL_CONNECTOR_VERSION}.jar ${PSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo postgresql-${PSQL_CONNECTOR_VERSION}.jar ${PSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
+    (sha256sum postgresql-${PSQL_CONNECTOR_VERSION}.jar | grep -q ${PSQL_CONNECTOR_SHA256} || (>&2 echo "sha256sum failed $(sha256sum postgresql-${PSQL_CONNECTOR_VERSION}.jar)" && exit 1)) && \
     \
     echo "> 5. get eclipselink " && \
     (curl -Lfo ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL}\n" && exit 1))  && \
@@ -108,28 +124,34 @@ RUN cd ${MOS_TEMP_PATH} && \
     TIMEOUT=30 && \
     (until `/bin/bash ${WILDFLY_HOME}/wildfly_started.sh`;do sleep 1;SEC=$(($(date +%s)-START));if [ ${SEC} -ge $TIMEOUT ];then exit 1;fi;done) && \
     ($JBOSS_CLI --connect --commands=" \
-    	module add --name=com.mysql --resources=${MOS_TEMP_PATH}/mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar --dependencies=javax.api\,javax.transaction.api, \
-        /subsystem=datasources/jdbc-driver=mysql:add(driver-name=mysql,driver-module-name=com.mysql,driver-class-name=com.mysql.cj.jdbc.Driver), \
-    	/extension=org.wildfly.extension.microprofile.health-smallrye:add, \
-    	/subsystem=microprofile-health-smallrye:add, \
-    	/subsystem=undertow/server=default-server/ajp-listener=myListener:add(socket-binding=ajp, scheme=http, enabled=true), \
-    	/subsystem=elytron/file-audit-log=local-audit:remove(), \
-    	/subsystem=logging/pattern-formatter=DATE_DETAILED:add(pattern=\"%d %-5p %-4L [%c] (%t) %s%E%n\"), \
-    	/subsystem=logging/pattern-formatter=DATE_COMPACT:add(pattern=\"%d %-5.5p %-4.4L %-40.40c{2.} | %m%n\"), \
-    	/subsystem=logging/pattern-formatter=NO_DATE_DETAILED:add(pattern=\"%d{HH:mm:ss,SSS} %-5p %-4L [%c] (%t) %s%E%n\"), \
-    	/subsystem=logging/pattern-formatter=NO_DATE_COMPACT:add(pattern=\"%d{HH:mm:ss,SSS} %-5.5p %-4.4L %-40.40c{2.} | %m%n\")" || exit 1) && \
+        module add --name=com.mysql --resources=${MOS_TEMP_PATH}/mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar --dependencies=javax.api\,javax.transaction.api, \
+        /subsystem=datasources/jdbc-driver=mysql:add(driver-module-name=com.mysql,driver-class-name=com.mysql.cj.jdbc.Driver), \
+        module add --name=org.mariadb --resources=${MOS_TEMP_PATH}/mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar --dependencies=javax.api\,javax.transaction.api, \
+        /subsystem=datasources/jdbc-driver=mariadb:add(driver-module-name=org.mariadb,driver-class-name=org.mariadb.jdbc.Driver), \
+        module add --name=org.postgresql --resources=${MOS_TEMP_PATH}/postgresql-${PSQL_CONNECTOR_VERSION}.jar --dependencies=javax.api\,javax.transaction.api, \
+        /subsystem=datasources/jdbc-driver=postgresql:add(driver-module-name=org.postgresql,driver-class-name=org.postgresql.Driver), \
+        /extension=org.wildfly.extension.microprofile.health-smallrye:add, \
+        /subsystem=microprofile-health-smallrye:add, \
+        /subsystem=undertow/server=default-server/ajp-listener=myListener:add(socket-binding=ajp, scheme=http, enabled=true), \
+        /subsystem=elytron/file-audit-log=local-audit:remove(), \
+        /subsystem=logging/pattern-formatter=DATE_DETAILED:add(pattern=\"%d %-5p %-4L [%c] (%t) %s%E%n\"), \
+        /subsystem=logging/pattern-formatter=DATE_COMPACT:add(pattern=\"%d %-5.5p %-4.4L %-40.40c{2.} | %m%n\"), \
+        /subsystem=logging/pattern-formatter=NO_DATE_DETAILED:add(pattern=\"%d{HH:mm:ss,SSS} %-5p %-4L [%c] (%t) %s%E%n\"), \
+        /subsystem=logging/pattern-formatter=NO_DATE_COMPACT:add(pattern=\"%d{HH:mm:ss,SSS} %-5.5p %-4.4L %-40.40c{2.} | %m%n\")" || exit 1) && \
     cp ${WILDFLY_HOME}/standalone/configuration/standalone.xml ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/standalone.${USER}.xml && \
     ($JBOSS_CLI --connect --commands=" \
-    	/subsystem=deployment-scanner/scanner=default:write-attribute(name=scan-enabled,value=false), \
-    	/subsystem=deployment-scanner/scanner=entrypoint:add(scan-interval=5000,path=${ENTRY_WILDFLY_DEPLOYS}), \
-    	:shutdown" || exit 1) && \
+        /subsystem=deployment-scanner/scanner=default:write-attribute(name=scan-enabled,value=false), \
+        /subsystem=deployment-scanner/scanner=entrypoint:add(scan-interval=5000,path=${ENTRY_WILDFLY_DEPLOYS}), \
+        :shutdown" || exit 1) && \
     echo -n "true" > ${MOS_READY_PATH}/markerfiles_mode && \
     \
     echo "> 7. register wildfly" && \
     register \
       --add-version="WildFly:${WILDFLY_VERSION}" \
       --add-version="MySQL-Connector:${MYSQL_CONNECTOR_VERSION}" \
-      --add-version="EclipseLink:\$(ls ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-* | sed -r 's/^.+-([0-9\.]+)\.jar$/\1/' | cat)" \
+      --add-version="MariaDB-Connector:${MARIADB_CONNECTOR_VERSION}" \
+      --add-version="PostgreSQL-Connector:${PSQL_CONNECTOR_VERSION}" \
+      --add-version="EclipseLink:${ECLIPSELINK_VERSION}" \
       --add-entrypoint="ENTRY_WILDFLY_CLI:${ENTRY_WILDFLY_CLI}" \
       --add-entrypoint="ENTRY_WILDFLY_DEPLOYS:${ENTRY_WILDFLY_DEPLOYS}" \
       --add-entrypoint="ENTRY_WILDFLY_ADDINS:${ENTRY_WILDFLY_ADDINS}" \

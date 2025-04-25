@@ -61,19 +61,37 @@ echo -e "
    in full length.
  ${BLUE}help${TEXT}
    Shows this help. This help has been implemented in all
-   mosaicgreifswald-images since 2024.
+   mosaicgreifswald-images since 2025.
 
  ${HEADER}Examples:${NC}
  > ${CODE}docker run --rm ${CYAN}mosaicgreifswald/zulujre ${BLUE}envs${DARK_GRAY}
+ ${UNDERLINE}VARIABLE-NAME${NC}${DARK_GRAY}                     ${UNDERLINE}CURRENT-VALUE${NC}${DARK_GRAY}                            ${UNDERLINE}DEFAULT-VALUE${NC}${DARK_GRAY}                            ${UNDERLINE}STATE${NC}${DARK_GRAY}
+ ENTRY_JAVA_CACERTS                /entrypoint-java-cacerts
+ ENTRY_LOGS                        /entrypoint-logs
+ ENTRY_USAGE                       /entrypoint-help-and-usage
+ HOME                              /opt/mosaic
+ JAVA_HOME                         /usr/lib/jvm/zulu
+ JAVA_VERSION
+ MOSAIC_GID                        1111
+ MOSAIC_UID                        1111
+ MOS_DEBUG                                                                  false
+ MOS_EXCLUDE_PROCESSES
+ MOS_INCLUDE_PROCESSES
+ MOS_READY_PATH                    /opt/mosaic/ready
+ MOS_RUN_MODE                      action                                   service
+ MOS_SHUTDOWN_DELAY
+ MOS_TEMP_PATH                     /opt/mosaic/temp
+ TZ                                Europe/Berlin                            Europe/Berlin
+ USER                              mosaic${NC}
 
-
- > ${CODE}docker run --rm ${CYAN}mosaicgreifswald/wildfly:26 ${BLUE}versions${DARK_GRAY}
- last updated               : 2024-11-11 13:24:31
- Distribution               : Debian GNU/Linux 12.8
- zulu-jre                   : 21.0.5
- WildFly                    : 34.0.0.Final
- MySQL-Connector            : 9.1.0
- EclipseLink                : 4.0.4
+ > ${CODE}docker run --rm ${CYAN}mosaicgreifswald/wildfly ${BLUE}versions${DARK_GRAY}
+ last updated               : 2025-03-18 10:18:44
+ Architecture               : x86_64
+ Distribution               : Debian GNU/Linux 12.10
+ zulu-jre                   : 21.0.6
+ WildFly                    : 35.0.1.Final
+ MySQL-Connector            : 9.2.0
+ EclipseLink                : 4.0.5${NC}
 
  ${HEADER}Additional help and examples:${NC}${TEXT}
 
@@ -88,7 +106,7 @@ echo -e "
  > ${CODE}docker run --rm -v \"your/path\":\"\$(pwd)\" ${CYAN}<IMAGE>${CODE} bash -c \"cp -R \$ENTRY_USAGE\* \$(pwd)/\"
 
  ${TEXT}License-information
- Copyright (C) 2009 - 2024 Institute for Community Medicine
+ Copyright (C) 2009 - 2025 Institute for Community Medicine
  University Medicine of Greifswald - mosaic-project@uni-greifswald.de
  GNU Affero General Public License version 3
 "

@@ -21,7 +21,7 @@ FROM debian:stable-slim
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20250305"
+ARG DATE_YMD="20250320"
 ARG WAIT_FOR_IT_DOWNLOAD_URL="https://raw.githubusercontent.com/vishnubob/wait-for-it/ed77b63706ea721766a62ff22d3a251d8b4a6a30/wait-for-it.sh"
 ARG WAIT_FOR_IT_SHA256="2ea7475e07674e4f6c1093b4ad6b0d8cbbc6f9c65c73902fb70861aa66a6fbc0"
 
@@ -66,13 +66,15 @@ RUN cd ${HOME} && \
     (sha256sum wait-for-it.sh | grep -q ${WAIT_FOR_IT_SHA256} > /dev/null || (>&2 echo "sha256sum failed $(sha256sum wait-for-it.sh)" && exit 1)) && \
     \
     echo "> 6. register bash-scripts" && \
+    ln -s ${HOME}/commons.sh ${HOME}/colors.sh && \
     ln -s ${HOME}/register.sh /usr/bin/register && \
     ln -s ${HOME}/versions.sh /usr/bin/versions && \
     ln -s ${HOME}/entrypoints.sh /usr/bin/entrypoints && \
     ln -s ${HOME}/help.sh /usr/bin/help && \
     ln -s ${HOME}/envs.sh /usr/bin/envs && \
+    ln -s ${HOME}/processes.sh /usr/bin/processes && \
     \
-    echo "> 7. create versions and entrypoints" && \
+    echo "> 7. register versions and entrypoints" && \
     /bin/bash ${HOME}/register.sh \
       --add-version="Architecture:$(uname -m)" \
       --add-version='Distribution:$(cat /etc/os-release | grep -E "^NAME" | cut -d"\"" -f2 ) $(cat /etc/debian_version)' \
