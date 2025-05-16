@@ -22,12 +22,12 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20250425"
+ARG DATE_YMD="20250516"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 
-ARG WILDFLY_VERSION="36.0.0.Final"
+ARG WILDFLY_VERSION="36.0.1.Final"
 ARG WILDFLY_DOWNLOAD_URL="https://github.com/wildfly/wildfly/releases/download/${WILDFLY_VERSION}/wildfly-${WILDFLY_VERSION}.tar.gz"
-ARG WILDFLY_SHA256="348d17ead028b09a28b11aa271b99f27105e051db89b6fd2ecdaf2b2c736e009"
+ARG WILDFLY_SHA256="1a0f71680cac962cef03173e81f5ff8886175f18292db158b75c8077cf4ac38d"
 
 ARG MYSQL_CONNECTOR_VERSION="9.3.0"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
