@@ -77,8 +77,9 @@ openjdk version "21.0.6" 2025-01-21 LTS
 
 ## Current Software-Versions on this Image
 | Date               | Tags                                                                                                                                                                | Changes                                         |
-|--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
-| 2025-04-25<br><br> | `21.0.7`, `12`, `latest`([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5a4e7537aa5a67634c13662101f5f6ca44ac30d2/image/zulujre/Dockerfile.zulujre))<br><br> | **Debian** 12.10 "bookworm"<br>**Java** 21.0.7  |
+|--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
+| 2025-06-13<br><br> | `21.0.7`, `21`, `latest`<br><br>                                                                                                                     | **Debian** 12.11 "bookworm"<br>**Java** 21.0.7  |
+| 2025-04-25<br><br> | `21.0.7` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5a4e7537aa5a67634c13662101f5f6ca44ac30d2/image/zulujre/Dockerfile.zulujre))<br><br> | **Debian** 12.10 "bookworm"<br>**Java** 21.0.7  |
 | 2025-01-24<br><br> | `21.0.6` <br><br>                                                                                                                                                   | **Debian** 12.9 "bookworm"<br>**Java** 21.0.6   |
 | 2025-01-13<br><br> | `21.0.5`<br><br>                                                                                                                                                    | **Debian** 12.8 "bookworm"<br>**Java** 21.0.5   |
 | 2024-09-09<br><br> | `21.0.4` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/081d44affc8e3048c38689d3e2780ad777b915f5/image/zulujre/Dockerfile.zulujre))<br><br>                | **Debian** 12.7 "bookworm"<br>**Java** 21.0.4   |
