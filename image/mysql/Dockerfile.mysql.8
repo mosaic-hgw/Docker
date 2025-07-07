@@ -22,11 +22,11 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20250106"
-ARG MYSQL_VERSION="8.4.3"
+ARG DATE_YMD="20250707"
+ARG MYSQL_VERSION="8.4.4"
 ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.17-#ARCH-minimal.tar.xz"
-ARG MYSQL_SHA256_X86_64="b614e51fddac1bbec1dd9cf0a96fcf2426007a8dbbbc3f6b17c555e3b92b017e"
-ARG MYSQL_SHA256_AARCH64="2410925642b9fbd925e9b298183ce1f6217a70dbb262c7886751bc77fa1f28e3"
+ARG MYSQL_SHA256_X86_64="d51628b4affd0dee2a2d4481896fbb4ea05b65532241fe222672ffb8af38eb7c"
+ARG MYSQL_SHA256_AARCH64="e5895c1297b7aaf0f041570f9ed933b1c5a3a4b97b0a57adbc22f08391679448"
 
 ENV MYSQL_HOME="${HOME}/mysql" \
     MYSQL_OPTS="" \
@@ -55,7 +55,7 @@ COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
     apt-get update && \
-    if [ "$(date +%F)" != "$(cat /var/log/apt/history.log | grep 'Date:' | tail -n1 | cut -d' ' -f2)" ]; then apt-get upgrade -y; register --os-updated; fi && \
+    if [ "$(date +%F)" != "$(stat -c '%.10y' $(ls -t /var/lib/dpkg/info/*.list | head -n 1))" ]; then apt-get upgrade -y; fi && \
     \
     echo "> 2. install xz-utils, procps and libraries" && \
     apt-get install -y xz-utils procps libaio1 libnuma1 libncurses5 && \
@@ -82,20 +82,20 @@ RUN cd ${MOS_TEMP_PATH} && \
         --add-entrypoint="ENTRY_MYSQL_SOCKET:${ENTRY_MYSQL_SOCKET}" \
         --add-entrypoint="ENTRY_MYSQL_LOGS:${ENTRY_MYSQL_LOGS}" \
         --add-healthcheck-script="${MYSQL_HOME}/healthcheck_mysql.sh" \
-        --add-run-script="10:service:${MYSQL_HOME}/run_mysql.sh:${MYSQL_HOME}/mysql_started.sh" && \
+        --add-process="mysql:10:service:${MYSQL_HOME}/run_mysql.sh:${MYSQL_HOME}/mysql_started.sh" && \
     \
     echo "> 5. cleanup" && \
     apt-get remove --purge --auto-remove -y xz-utils && \
     apt-get clean && \
     apt-get autoclean && \
-    apt-get autoremove && \
+    apt-get autoremove -y && \
     ln -s ${MYSQL_HOME}/my.cnf ${ENTRY_MYSQL_MY_CNF} && \
     ln -s ${ENTRY_LOGS}/mysql ${ENTRY_MYSQL_LOGS} && \
     ln -s ${MYSQL_HOME}/bin/* /usr/bin/ && \
     ln -s /dev/stdout ${MYSQL_HOME}/stdout.log && \
     chown ${USER}:${USER} -R ${MYSQL_HOME} ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_UPDATE_SQLS} \
     	${ENTRY_MYSQL_SOCKET} ${ENTRY_MYSQL_MY_CNF} ${ENTRY_MYSQL_LOGS} ${ENTRY_USAGE} && \
-    chmod 777 ${MYSQL_HOME} && chmod 666 ${MYSQL_HOME}/my.cnf && chmod 555 -R ${MYSQL_HOME}/*.sh && \
+    chmod 777 ${MYSQL_HOME} && chmod 666 ${MYSQL_HOME}/my.cnf && chmod 755 -R ${MYSQL_HOME}/*.sh && \
 	rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
 
 USER ${USER}

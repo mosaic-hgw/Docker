@@ -32,15 +32,16 @@ For example, the memory requirement can simply be specified with: `MYSQL_OPTS=--
 ## Usage Docker
 ```shell
 # build java-image
-> cd images/mysql
+> git clone https://github.com/mosaic-hgw/Docker.git
+> cd mosaic-hgw/Docker/image/mysql
 > docker build --tag="mosaicgreifswald/mysql" --file="Dockerfile.mysql.8" .
 
 # "versions" shows all installed tools and components, with their versions
 > docker run --rm mosaicgreifswald/mysql versions
-  last updated               : 2025-01-09 09:59:53
+  last updated               : 2025-07-07 16:33:51
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 12.8
-  MySQL-Server               : 8.4.3
+  Distribution               : Debian GNU/Linux 12.11
+  MySQL-Server               : 8.4.4
   
 # "entrypoints" lists all registered entrypoints
 > docker run --rm mosaicgreifswald/mysql entrypoints
@@ -84,15 +85,15 @@ You can change the write-user by using the Docker parameter --user/-u.
 
 > ls -la /path/to/your/db-data
 insgesamt 104552
-drwxr-xr-x  7 1006 1001     4096  9. Jan 10:29  .
-drwxrwxrwt 10 root root     4096  9. Jan 10:29  ..
--rw-r-----  1 1006 1001     1553  9. Jan 10:29  224fec23b202.err
--rw-r-----  1 1006 1001        4  9. Jan 10:29  224fec23b202.pid
--rw-r-----  1 1006 1001       56  9. Jan 10:29  auto.cnf
--rw-r-----  1 1006 1001      867  9. Jan 10:29  binlog.000001
--rw-r-----  1 1006 1001      158  9. Jan 10:29  binlog.000002
--rw-r-----  1 1006 1001       32  9. Jan 10:29  binlog.index
--rw-------  1 1006 1001     1705  9. Jan 10:29  ca-key.pem
+drwxr-xr-x  7 1006 1001     4096  9. Jun 10:29  .
+drwxrwxrwt 10 root root     4096  9. Jun 10:29  ..
+-rw-r-----  1 1006 1001     1553  9. Jun 10:29  224fec23b202.err
+-rw-r-----  1 1006 1001        4  9. Jun 10:29  224fec23b202.pid
+-rw-r-----  1 1006 1001       56  9. Jun 10:29  auto.cnf
+-rw-r-----  1 1006 1001      867  9. Jun 10:29  binlog.000001
+-rw-r-----  1 1006 1001      158  9. Jun 10:29  binlog.000002
+-rw-r-----  1 1006 1001       32  9. Jun 10:29  binlog.index
+-rw-------  1 1006 1001     1705  9. Jun 10:29  ca-key.pem
 ...
 ```
 
@@ -100,7 +101,6 @@ drwxrwxrwt 10 root root     4096  9. Jan 10:29  ..
 ## Usage with Docker compose
 ```yml
 # docker-compose.yml
-version: '3'
 services:
   mysql:
     image: mosaicgreifswald/mysql
@@ -108,8 +108,6 @@ services:
       - 3306:3306
     environment:
       MYSQL_ROOT_PASSWORD: top-secret
-    env_file:
-      - ./envs/wf_commons.env
     volumes:
       - ./db-data:/entrypoint-mysql-data
       - ./sqls:/entrypoint-mysql-sqls
@@ -147,10 +145,11 @@ You will receive the following directory-tree and can start playing immediately:
 
 
 ## Current Software-Versions on this Image
-| Date                   | Tags                                                                                                                                                                 | Changes                                                                                              |
-|------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
-| 2025-01-09<br><br><br><br> | `8.4.3`, `8`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/488f661e0204675dc70da96e1436d1893ae57f0f/image/mysql/Dockerfile.mysql.8))<br><br><br><br> | **Debian** 12.8 "bookworm"<br>**MySQL-Server** 8.4.3<br>**added** support for docker-parameter --user/-u<br>**added** sql-update-strategy |
-| 2024-09-09<br><br>     | `8.4.2` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/dcb3c640768bc75158866466b4c7565de1f6a509/image/mysql/Dockerfile.mysql.8))<br><br>                    | **Debian** 12.7 "bookworm"<br>**MySQL-Server** 8.4.2                                                 |
-| 2024-07-22<br><br>     | `8.4.1` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/d66574b99dfe376a80bb1ca3ff86c3103991cb4f/image/mysql/Dockerfile.mysql.8))<br><br>                    | **Debian** 12.6 "bookworm"<br>**MySQL-Server** 8.4.1                                                 |
-| 2024-06-18             | `8.4.0` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/8ca53f507d18361bca5fc3e824630f7a813590a8/image/mysql/Dockerfile.mysql.8))                            | **MySQL-Server** 8.4.0                                                                               |
-| 2024-03-05<br><br>     | `8.3.0` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8))<br><br>                    | **Debian** 12.5 "bookworm"<br>**MySQL-Server** 8.3.0                                                 |
+| Date                       | Tags                                                                                                                                                             | Changes                                                                                                                                   |
+|----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| 2025-07-07<br><br>         | `8.4.4`, `8`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/488f661e0204675dc70da96e1436d1893ae57f0f/image/mysql/Dockerfile.mysql.8))<br><br> | **Debian** 12.11 "bookworm"<br>**MySQL-Server** 8.4.4                                                                                     |
+| 2025-01-13<br><br><br><br> | `8.4.3` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/488f661e0204675dc70da96e1436d1893ae57f0f/image/mysql/Dockerfile.mysql.8))<br><br><br><br>        | **Debian** 12.9 "bookworm"<br>**MySQL-Server** 8.4.3<br>**added** support for docker-parameter --user/-u<br>**added** sql-update-strategy |
+| 2024-09-09<br><br>         | `8.4.2` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/dcb3c640768bc75158866466b4c7565de1f6a509/image/mysql/Dockerfile.mysql.8))<br><br>                | **Debian** 12.7 "bookworm"<br>**MySQL-Server** 8.4.2                                                                                      |
+| 2024-07-22<br><br>         | `8.4.1` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/d66574b99dfe376a80bb1ca3ff86c3103991cb4f/image/mysql/Dockerfile.mysql.8))<br><br>                | **Debian** 12.6 "bookworm"<br>**MySQL-Server** 8.4.1                                                                                      |
+| 2024-06-18                 | `8.4.0` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/8ca53f507d18361bca5fc3e824630f7a813590a8/image/mysql/Dockerfile.mysql.8))                        | **MySQL-Server** 8.4.0                                                                                                                    |
+| 2024-03-05<br><br>         | `8.3.0` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8))<br><br>                | **Debian** 12.5 "bookworm"<br>**MySQL-Server** 8.3.0                                                                                      |
