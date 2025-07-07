@@ -31,6 +31,7 @@ register \
 |------------|-----------------------|---------------------------------------|---------------|
 | Optimizing | TZ                    | \<STRING\>                            | Europe/Berlin |
 | Optimizing | MOS_RUN_MODE          | action / service / cascade / external | service       |
+| Processing | MOS_WAIT_FOR_PORTS    | \<HOST\>:\<PORT\>:\<TIMEOUT\>         |               |
 | Testing    | MOS_SHUTDOWN_DELAY    | \<SECONDS\>                           |               |
 | Processing | MOS_INCLUDE_PROCESSES | \<REGEX\>                             |               |
 | Processing | MOS_EXCLUDE_PROCESSES | \<REGEX\>                             |               |
@@ -41,8 +42,13 @@ The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does no
 - `cascade` like `service` but also stops all other services as soon as a service ends
 - `external` like `service` but does not restart an ended service nor does it stop the others
 
-The `MOS_SHUTDOWN_DELAY` variable defines the duration, in seconds, after which all services should be gracefully terminated.
-The `MOS_INCLUDE_PROCESSES` variable can contain a regular expression that includes one or more processes to be started by name.
+The `MOS_WAIT_FOR_PORTS` variable holds a comma- or semicolon-separated list of endpoints in the form: `host:port[:timeout]`
+- `host` hostname or IP to check
+- `port` TCP port to connect to
+- `timeout` (optional) seconds to wait before giving up (default 300)
+
+The `MOS_SHUTDOWN_DELAY` variable defines the duration, in seconds, after which all services should be gracefully terminated.\
+The `MOS_INCLUDE_PROCESSES` variable can contain a regular expression that includes one or more processes to be started by name.\
 The variable `MOS_EXCLUDE_PROCESSES` does exactly the opposite. It ignores processes that match the regular expression.
 
 ## Relevant Entrypoints
@@ -70,9 +76,10 @@ The variable `MOS_EXCLUDE_PROCESSES` does exactly the opposite. It ignores proce
 
 ## Current Software-Versions on this Image
 | Date               | Tags                                                                                                                                                              | Changes                                                                    |
-|--------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| 2025-06-13         | `12.11`, `12`, `latest`                                                                                                                           | **Debian** 12.11 "bookworm"                                                |
-| 2025-04-25<br><br> | `12.10` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/a370600c41ce8b19f2b0ed55be81a6aa3000cdf2/image/debian/Dockerfile.debian))<br><br> | **Debian** 12.10 "bookworm"<br>improved process control                    |
+|--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| 2025-07-07<br><br> | `12.11`, `12`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/a370600c41ce8b19f2b0ed55be81a6aa3000cdf2/image/debian/Dockerfile.debian))<br><br> | **Debian** 12.11 "bookworm"<br>moved wait-for-it.sh into run-script        |
+| 2025-06-13         | `12.11`                                                                                                                                                           | **Debian** 12.11 "bookworm"                                                |
+| 2025-04-25<br><br> | `12.10` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/a370600c41ce8b19f2b0ed55be81a6aa3000cdf2/image/debian/Dockerfile.debian))<br><br>                 | **Debian** 12.10 "bookworm"<br>improved process control                    |
 | 2025-03-05<br><br> | `12.9` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/d5ee0894caa3033284d3caaf4d6373a8810cfb96/image/debian/Dockerfile.debian))<br><br>                  | **Debian** 12.9 "bookworm"<br>added support for docker-parameter --user/-u |
 | 2025-01-13         | `12.8`                                                                                                                                                            | **Debian** 12.8 "bookworm"                                                 |
 | 2024-09-09         | `12.7` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/75e66a88eb961ca664eb754cb9c0c20ee9197c3d/image/debian/Dockerfile.debian))                          | **Debian** 12.7 "bookworm"                                                 |

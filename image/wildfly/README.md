@@ -70,15 +70,15 @@ There are 3 strategies built into this docker image.
 
 # "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/wildfly versions
-  last updated               : 2025-04-25 11:16:58
+  last updated               : 2025-07-07 11:20:58
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 12.10
+  Distribution               : Debian GNU/Linux 12.11
   zulu-jre                   : 21.0.7
-  WildFly                    : 36.0.0.Final
+  WildFly                    : 36.0.1.Final
   MySQL-Connector            : 9.3.0
-  MariaDB-Connector          : 3.5.3
-  PostgreSQL-Connector       : 42.7.5
-  EclipseLink                : 4.0.6
+  MariaDB-Connector          : 3.5.4
+  PostgreSQL-Connector       : 42.7.7
+  EclipseLink                : 4.0.7
 
 # simple start with your deployments and without wildfly-admin-user
 > docker run --rm \
@@ -123,10 +123,10 @@ You can change the write-user by using the Docker parameter --user/-u.
 
 > ls -la /path/to/your/logs
 insgesamt 8
-drwxr-xr-x  2 1006 1001 4096 11. Dez 10:25 .
-drwxrwxrwt 10 root root 4096 11. Dez 10:26 ..
--rw-r--r--  1 1006 1001    0 11. Dez 10:25 server.log
-drwxr-xr-x  2 1006 1001 4096 11. Dez 10:25 system
+drwxr-xr-x  2 1006 1001 4096 11. Jun 10:25 .
+drwxrwxrwt 10 root root 4096 11. Jun 10:26 ..
+-rw-r--r--  1 1006 1001    0 11. Jun 10:25 server.log
+drwxr-xr-x  2 1006 1001 4096 11. Jun 10:25 system
 ```
 
 ## Usage with docker compose
@@ -153,11 +153,10 @@ services:
       WF_HEALTHCHECK_URLS: |
         http://localhost:8080
         http://localhost:8080/your-app.html
+      MOS_WAIT_FOR_PORTS: mysql:3306:60
     volumes:
       - /path/to/your/cli-files:/entrypoint-wildfly-cli
-      - /path/to/your/deployments:/entrypoint-wildfly-deployments
-    entrypoint: /bin/bash
-    command: -c "./wait-for-it.sh mysql:3306 -t 60 && ./run.sh"
+      - /path/to/your/deployments:/entrypoint-wildfly-deployments"
 ```
 
 
@@ -180,35 +179,6 @@ All relevant adjustments can be written into a CLI-file and passed to WildFly.
     --user-name=mosaic \
     --password=top-secret \
     --driver-name=mysql
-  ```
-
-* add postgresql-jdbc-driver-module and datasource
-  ```sh
-  # add-postgre-datasource.cli
-
-  batch
-
-  module add \
-    --name=org.postgre \
-    --resources=/entrypoint-wildfly-cli/postgresql.jar \
-    --dependencies=javax.api,javax.transaction.api
-
-  /subsystem=datasources/jdbc-driver=postgre: \
-    add( \
-      driver-name="postgre", \
-      driver-module-name="org.postgre", \
-      driver-class-name=org.postgresql.Driver \
-    )
-
-  data-source add \
-    --name=PostgreSQLPool \
-    --jndi-name=java:/jboss/PostgreSQLDS \
-    --connection-url=jdbc:postgresql://app-db:5432/dbName \
-    --user-name=mosaic \
-    --password=top-secret \
-    --driver-name=postgre
-
-  run-batch
   ```
 
 ## Additional files

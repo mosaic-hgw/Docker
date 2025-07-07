@@ -1,4 +1,3 @@
-version: '3'
 services:
 
   mysql:
@@ -19,11 +18,10 @@ services:
       - ./envs/wf_commons.env
     environment:
       WF_ADMIN_PASS: top-secret
+      MOS_WAIT_FOR_PORTS: mysql:3306:60
     volumes:
       - ./addins:/entrypoint-wildfly-addins
       - ./deployments:/entrypoint-wildfly-deployments
       - ./jboss:/entrypoint-wildfly-cli
       - ./logs:/entrypoint-wildfly-logs
 #      - ./cacerts:/entrypoint-java-cacerts
-    entrypoint: /bin/bash
-    command: -c "./wait-for-it.sh mysql:3306 -t 60 && ./run.sh"

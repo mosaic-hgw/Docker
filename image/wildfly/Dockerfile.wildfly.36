@@ -22,7 +22,7 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20250613"
+ARG DATE_YMD="20250701"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 
 ARG WILDFLY_VERSION="36.0.1.Final"
@@ -33,18 +33,18 @@ ARG MYSQL_CONNECTOR_VERSION="9.3.0"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
 ARG MYSQL_CONNECTOR_SHA256="6c8e6692b521376d89bc5618c16cdeaf8c61854329f4fa25677ed08776c5bb76"
 
-ARG MARIADB_CONNECTOR_VERSION="3.5.3"
+ARG MARIADB_CONNECTOR_VERSION="3.5.4"
 ARG MARIADB_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/mariadb/jdbc/mariadb-java-client/${MARIADB_CONNECTOR_VERSION}/mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar"
-ARG MARIADB_CONNECTOR_SHA256="85c4ba2f221d0dfd439c26affbb294f784960763544263c65aba9c2c76858706"
+ARG MARIADB_CONNECTOR_SHA256="9cac1a01e3b2bac18f826d48475b93e6bdb5c16d31f7227f9653c7c8f1b378e7"
 
 ARG PSQL_CONNECTOR_VERSION="42.7.7"
 ARG PSQL_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/postgresql/postgresql/${PSQL_CONNECTOR_VERSION}/postgresql-${PSQL_CONNECTOR_VERSION}.jar"
 ARG PSQL_CONNECTOR_SHA256="157963d60ae66d607e09466e8c0cdf8087e9cb20d0159899ffca96bca2528460"
 
-ARG ECLIPSELINK_VERSION="4.0.6"
+ARG ECLIPSELINK_VERSION="4.0.7"
 ARG ECLIPSELINK_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/eclipse/persistence/eclipselink/${ECLIPSELINK_VERSION}/eclipselink-${ECLIPSELINK_VERSION}.jar"
 ARG ECLIPSELINK_PATH="modules/system/layers/base/org/eclipse/persistence/main"
-ARG ECLIPSELINK_SHA256="b341c6960545c44be9ebd743e500f2673c198cb0e5e6dc8aa316f22c3fe3a93f"
+ARG ECLIPSELINK_SHA256="c352feb8ae8d017bb6b039cf068ce9bd00097e54520d8d425dac94726b1b59cf"
 
 ENV WILDFLY_HOME="${HOME}/wildfly" \
     JBOSS_CLI="${HOME}/wildfly/bin/jboss-cli.sh" \
@@ -90,30 +90,30 @@ RUN cd ${MOS_TEMP_PATH} && \
     ln -s ${ENTRY_LOGS}/wildfly ${ENTRY_WILDFLY_LOGS} && \
     \
     echo "> 3. install wildfly" && \
-    (curl -Lfo wildfly.tar.gz ${WILDFLY_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lso wildfly.tar.gz ${WILDFLY_DOWNLOAD_URL}\n" && exit 1))  && \
-    (sha256sum wildfly.tar.gz | grep -q ${WILDFLY_SHA256} || (>&2 echo "sha256sum failed $(sha256sum wildfly.tar.gz)" && exit 1)) && \
+    (curl -Lfo wildfly.tar.gz ${WILDFLY_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -Lso wildfly.tar.gz ${WILDFLY_DOWNLOAD_URL}\n" && exit 1))  && \
+    (sha256sum wildfly.tar.gz | grep -q ${WILDFLY_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum wildfly.tar.gz)" && exit 1)) && \
     tar xf wildfly.tar.gz && \
     cp -R wildfly-${WILDFLY_VERSION}/* ${WILDFLY_HOME}/ && \
     #rm -rf ${WILDFLY_HOME}/bin/*.bat ${WILDFLY_HOME}/bin/*.ps1 ${WILDFLY_HOME}/docs && \
     mkdir -pm 777 ${WILDFLY_HOME}/standalone/log && touch ${WILDFLY_HOME}/standalone/log/server.log && \
     \
     echo "> 4.1 get mysql-connector " && \
-    (curl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
+    (curl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
     tar xf mysql-connector-java.tar.gz && \
     mv mysql-connector-j-*/mysql*jar ./mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar && \
-    (sha256sum mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar | grep -q ${MYSQL_CONNECTOR_SHA256} || (>&2 echo "sha256sum failed $(sha256sum mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar)" && exit 1)) && \
+    (sha256sum mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar | grep -q ${MYSQL_CONNECTOR_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar)" && exit 1)) && \
     \
     echo "> 4.2 get mariadb-connector " && \
-    (curl -Lfo mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar ${MARIADB_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar ${MARIADB_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
-    (sha256sum mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar | grep -q ${MARIADB_CONNECTOR_SHA256} || (>&2 echo "sha256sum failed $(sha256sum mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar)" && exit 1)) && \
+    (curl -Lfo mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar ${MARIADB_CONNECTOR_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -Lfo mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar ${MARIADB_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
+    (sha256sum mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar | grep -q ${MARIADB_CONNECTOR_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum mariadb-java-client-${MARIADB_CONNECTOR_VERSION}.jar)" && exit 1)) && \
     \
     echo "> 4.3 get postgresql-connector " && \
-    (curl -Lfo postgresql-${PSQL_CONNECTOR_VERSION}.jar ${PSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo postgresql-${PSQL_CONNECTOR_VERSION}.jar ${PSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
-    (sha256sum postgresql-${PSQL_CONNECTOR_VERSION}.jar | grep -q ${PSQL_CONNECTOR_SHA256} || (>&2 echo "sha256sum failed $(sha256sum postgresql-${PSQL_CONNECTOR_VERSION}.jar)" && exit 1)) && \
+    (curl -Lfo postgresql-${PSQL_CONNECTOR_VERSION}.jar ${PSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -Lfo postgresql-${PSQL_CONNECTOR_VERSION}.jar ${PSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
+    (sha256sum postgresql-${PSQL_CONNECTOR_VERSION}.jar | grep -q ${PSQL_CONNECTOR_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum postgresql-${PSQL_CONNECTOR_VERSION}.jar)" && exit 1)) && \
     \
     echo "> 5. get eclipselink " && \
-    (curl -Lfo ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL}\n" && exit 1))  && \
-    (sha256sum ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar | grep -q ${ECLIPSELINK_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar)" && exit 1)) && \
+    (curl -Lfo ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -Lfo ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL}\n" && exit 1))  && \
+    (sha256sum ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar | grep -q ${ECLIPSELINK_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar)" && exit 1)) && \
     sed -i "s/<\/resources>/    <resource-root path=\"eclipselink-${ECLIPSELINK_VERSION}.jar\"\/>\n    <\/resources>/;\
         s/<\/dependencies>/    <module name=\"java.rmi\"\/>\n        <module name=\"java.desktop\"\/>\n        <module name=\"java.xml\"\/>\n    <\/dependencies>/" ${WILDFLY_HOME}/${ECLIPSELINK_PATH}/module.xml && \
     chown -R ${USER}:${USER} ${WILDFLY_HOME}/${ECLIPSELINK_PATH} && \

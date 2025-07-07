@@ -66,17 +66,19 @@ There are 3 strategies built into this docker image.
 # build wildfly-image (required java-image mosaicgreifswald/zulujre:21)
 > git clone https://github.com/mosaic-hgw/Docker.git
 > cd mosaic-hgw/Docker/image/wildfly
-> docker build --tag="mosaicgreifswald/wildfly" --file="Dockerfile.wildfly.35" .
+> docker build --tag="mosaicgreifswald/wildfly" --file="Dockerfile.wildfly.36" .
 
 # "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/wildfly versions
-  last updated               : 2025-01-24 09:05:05
+  last updated               : 2025-07-07 11:20:58
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 12.9
-  zulu-jre                   : 21.0.6
-  WildFly                    : 35.0.0.Final
-  MySQL-Connector            : 9.2.0
-  EclipseLink                : 4.0.5
+  Distribution               : Debian GNU/Linux 12.11
+  zulu-jre                   : 21.0.7
+  WildFly                    : 36.0.1.Final
+  MySQL-Connector            : 9.3.0
+  MariaDB-Connector          : 3.5.4
+  PostgreSQL-Connector       : 42.7.7
+  EclipseLink                : 4.0.7
 
 # simple start with your deployments and without wildfly-admin-user
 > docker run --rm \
@@ -121,10 +123,10 @@ You can change the write-user by using the Docker parameter --user/-u.
 
 > ls -la /path/to/your/logs
 insgesamt 8
-drwxr-xr-x  2 1006 1001 4096 11. Dez 10:25 .
-drwxrwxrwt 10 root root 4096 11. Dez 10:26 ..
--rw-r--r--  1 1006 1001    0 11. Dez 10:25 server.log
-drwxr-xr-x  2 1006 1001 4096 11. Dez 10:25 system
+drwxr-xr-x  2 1006 1001 4096 11. Jun 10:25 .
+drwxrwxrwt 10 root root 4096 11. Jun 10:26 ..
+-rw-r--r--  1 1006 1001    0 11. Jun 10:25 server.log
+drwxr-xr-x  2 1006 1001 4096 11. Jun 10:25 system
 ```
 
 ## Usage with docker compose
@@ -132,7 +134,6 @@ over docker-compose with dependent on mysql-db (example)
 ```yml
 # docker-compose.yml
 
-version: '3'
 services:
   mysql:
     image: mysql
@@ -152,11 +153,10 @@ services:
       WF_HEALTHCHECK_URLS: |
         http://localhost:8080
         http://localhost:8080/your-app.html
+      MOS_WAIT_FOR_PORTS: mysql:3306
     volumes:
       - /path/to/your/cli-files:/entrypoint-wildfly-cli
       - /path/to/your/deployments:/entrypoint-wildfly-deployments
-    entrypoint: /bin/bash
-    command: -c "./wait-for-it.sh mysql:3306 -t 60 && ./run.sh"
 ```
 
 
@@ -181,35 +181,6 @@ All relevant adjustments can be written into a CLI-file and passed to WildFly.
     --driver-name=mysql
   ```
 
-* add postgresql-jdbc-driver-module and datasource
-  ```sh
-  # add-postgre-datasource.cli
-
-  batch
-
-  module add \
-    --name=org.postgre \
-    --resources=/entrypoint-wildfly-cli/postgresql.jar \
-    --dependencies=javax.api,javax.transaction.api
-
-  /subsystem=datasources/jdbc-driver=postgre: \
-    add( \
-      driver-name="postgre", \
-      driver-module-name="org.postgre", \
-      driver-class-name=org.postgresql.Driver \
-    )
-
-  data-source add \
-    --name=PostgreSQLPool \
-    --jndi-name=java:/jboss/PostgreSQLDS \
-    --connection-url=jdbc:postgresql://app-db:5432/dbName \
-    --user-name=mosaic \
-    --password=top-secret \
-    --driver-name=postgre
-
-  run-batch
-  ```
-
 ## Additional files
 ```shell
 # see all additional files
@@ -225,10 +196,6 @@ You will receive the following directory-tree and can start playing immediately:
 │ ├─── README-wildfly.md
 │ └─── README-zulujre.md
 └─┬─ examples/
-  ├─┬─ compose-wildfly-dbdriver/
-  │ ├─── jboss/
-  │ └─┬─ add_x_driver.cli
-  │   └─── docker-compose.yml
   ├─┬─ compose-wildfly-empty/
   │ ├─── addins/
   │ ├─┬─ envs/
@@ -245,27 +212,31 @@ You will receive the following directory-tree and can start playing immediately:
 
 
 ## Current Software-Versions on this Image
-| Date                               | Tags                                                                                                                                                                         | Changes                                                                                                                                                            |
-|------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 2025-03-05<br><br>                 | `35-20250305`, `35`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/778f00aa5c1f65fc4a3b35d2ad8a00454cbfaafc/image/wildfly/Dockerfile.wildfly.35))<br><br> | **WildFly** 35.0.1.Final<br>                                                                                                                                       |
-| 2025-01-24<br><br>                 | `35-20250124` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/778f00aa5c1f65fc4a3b35d2ad8a00454cbfaafc/image/wildfly/Dockerfile.wildfly.35))<br><br>                 | **openJRE** 21.0.6<br>**MySQL-Connector** 9.2.0                                                                                                                    |
-| 2025-01-09<br><br><br><br>         | `35-20250113` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/b665e95c2d14b6aedcd4a166690dd9dbd12a55d9/image/wildfly/Dockerfile.wildfly.35))<br><br><br>             | **Debian** 12.9 "bookworm"<br>**WildFly** 35.0.0.Final<br>**EclipseLink** 4.0.5<br>added support for docker-parameter --user/-u                                    |
-| 2025-01-13<br><br><br>             | `34-20250113`, `34` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/93e62f93916fcf485357a40b835eb98a6c103a1e/image/wildfly/Dockerfile.wildfly.34))<br><br>           | **Debian** 12.9 "bookworm"<br>**EclipseLink** 4.0.5<br>added support for docker-parameter --user/-u                                                                |
-| 2024-11-26                         | `34-20241126` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/36531af13f029f03a4781d42ebf647ff2deaafcd/image/wildfly/Dockerfile.wildfly.34))                         | **WildFly** 34.0.1.Final                                                                                                                                           |
-| 2024-11-11<br><br><br><br>         | `34-20241111` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/36531af13f029f03a4781d42ebf647ff2deaafcd/image/wildfly/Dockerfile.wildfly.34))<br><br><br><br>         | **Debian** 12.8 "bookworm"<br>**openJRE** 21.0.5<br>**WildFly** 34.0.0.Final<br>**MySQL-Connector** 9.1.0                                                          |
-| 2024-11-11<br><br><br>             | `32-20241111`, `32` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/24838931a9c6d473a1d18377a79df9ef9674a872/image/wildfly/Dockerfile.wildfly.32))<br><br><br>       | **Debian** 12.8 "bookworm"<br>**openJRE** 21.0.5<br>**MySQL-Connector** 9.1.0                                                                                      |
-| 2024-09-09<br><br>                 | `32-20240909` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/77443c702b70f94709874960b54328a478d6c880/image/wildfly/Dockerfile.wildfly.32))<br><br>                 | **Debian** 12.7 "bookworm"<br>experimental keystore for server-certificate                                                                                         |
-| 2024-07-22<br><br><br>             | `32-20240722` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/29efa4dff981372bf2b64b1ec87d5138af89dd37/image/wildfly/Dockerfile.wildfly.32))<br><br><br>             | **Debian** 12.6 "bookworm"<br>**openJRE** 21.0.4<br>**EclipseLink** 4.0.4                                                                                          |
-| 2024-06-10                         | `32-20240610` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/d1c1e88fcfd5584f998ece1a355e9be6f34cb579/image/wildfly/Dockerfile.wildfly.32))                         | **MySQL-Connector** 8.4.0                                                                                                                                          |
-| 2024-06-03                         | `32-20240603` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/af941b41a16285b1789fe36ea0af2bb7a3b7f70f/image/wildfly/Dockerfile.wildfly.32))                         | **WildFly** 32.0.1.Final                                                                                                                                           |
-| 2024-05-23                         | `32-20240523` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/ad6ba5ba960d9e29f00cbe8bc92b4fcdb0d5aec1/image/wildfly/Dockerfile.wildfly.32))                         | **EclipseLink** 4.0.3                                                                                                                                              |
-| 2024-05-13                         | `32-20240513`                                                                                                                                                                | fixed vulnerabilities in libc                                                                                                                                      |
-| 2024-04-29                         | `32-20240429` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/c6a78e0ada518ee18f08aaa19a6e1b57441317c9/image/wildfly/Dockerfile.wildfly.32))                         | **WildFly** 32.0.0.Final                                                                                                                                           |
-| 2024-04-18<br><br><br><br>         | `31` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/a5e21db40b173fb988d9bb8eebc2807f646f7004/image/wildfly/Dockerfile.wildfly.31))<br><br><br><br>                  | **Debian** 12.5 "bookworm"<br>**openJRE** 21.0.3<br>**WildFly** 31.0.1.Final<br>**MySQL-Connector** 8.3.0                                                          |
-| 2024-01-11<br><br><br><br><br>     | `30` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/7377469445d77d08e4556d4158cfc52df7a45410/image/appserver/Dockerfile.app.wf30))<br><br><br><br><br>              | **Debian** 12.4 "bookworm"<br>**openJRE** 21.0.1<br>**WildFly** 30.0.1.Final<br>**MySQL-Connector** 8.2.0<br>**EclipseLink** 4.0.2                                 |
-| 2023-10-30<br><br><br><br><br>     | `29`<br><br><br><br><br>                                                                                                                                                     | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9<br>**WildFly** 29.0.1.Final<br>**EclipseLink** 4.0.2<br>**KeyCloak-Client** deleted                               |
-| 2023-12-19<br><br>                 | `26-20231219`, `26` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/7377469445d77d08e4556d4158cfc52df7a45410/image/appserver/Dockerfile.app.wf26))<br><br>           | **Debian** 12.4 "bookworm"<br>**EclipseLink** 2.7.14                                                                                                               |
-| 2023-10-30<br><br>                 | `26-20231030`<br><br>                                                                                                                                                        | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9                                                                                                                   |
-| 2023-07-13                         | `26-20230713`                                                                                                                                                                | **Debian** 12.0 "bookworm"                                                                                                                                         |
-| 2023-05-23                         | `26-20230523`                                                                                                                                                                | **Debian** 11.7 "bullseye"                                                                                                                                         |
-| 2023-04-25<br><br><br><br><br><br> | `26-20230425`<br><br><br><br><br><br>                                                                                                                                        | **Debian** 11.6 "bullseye"<br>**ZuluJRE** 17.0.7<br>**WildFly** 26.1.3.Final<br>**MySQL-Connector** 8.0.33<br>**EclipseLink** 2.7.12<br>**KeyCloak-Client** 19.0.2 |
+| Date                                   | Tags                                                                                                                                                                             | Changes                                                                                                                                                                                               |
+|----------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 2025-06-13<br><br>                     | `36-20250613`, `36`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/60eba00105594e9926993fcbab8da803494a5d26/image/wildfly/Dockerfile.wildfly.36))<br><br>     | **Debian** 12.11 "bookworm"<br>**PostgreSQL-Connector** 42.7.7                                                                                                                                        |
+| 2025-05-16                             | `36-20250516` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/b9aff4016adff28c984443545026c4bd218ea2c8/image/wildfly/Dockerfile.wildfly.36))                             | **WildFly** 36.0.1.Final                                                                                                                                                                              |
+| 2025-04-25<br><br><br><br><br><br><br> | `36-20250425` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/a370600c41ce8b19f2b0ed55be81a6aa3000cdf2/image/wildfly/Dockerfile.wildfly.36))<br><br><br><br><br><br><br> | **Debian** 12.10 "bookworm"<br>**openJRE** 21.0.7<br>**WildFly** 36.0.0.Final<br>**MySQL-Connector** 9.3.0<br>**MariaDB-Connector** 3.5.3<br>**PostgreSQL-Connector** 42.7.5<br>**EclipseLink** 4.0.6 |
+| 2025-04-25<br><br><br><br>             | `35-20250425`, `35` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/a370600c41ce8b19f2b0ed55be81a6aa3000cdf2/image/wildfly/Dockerfile.wildfly.35))<br><br><br><br>       | **Debian** 12.10 "bookworm"<br>**openJRE** 21.0.7<br>**MySQL-Connector** 9.3.0<br>**EclipseLink** 4.0.6                                                                                               |
+| 2025-03-05                             | `35-20250305` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/7665c1f8f2f58257608330a4309fb59d3c191b21/image/wildfly/Dockerfile.wildfly.35))                             | **WildFly** 35.0.1.Final                                                                                                                                                                              |
+| 2025-01-24<br><br>                     | `35-20250124` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/778f00aa5c1f65fc4a3b35d2ad8a00454cbfaafc/image/wildfly/Dockerfile.wildfly.35))<br><br>                     | **openJRE** 21.0.6<br>**MySQL-Connector** 9.2.0                                                                                                                                                       |
+| 2025-01-09<br><br><br><br>             | `35-20250113` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/b665e95c2d14b6aedcd4a166690dd9dbd12a55d9/image/wildfly/Dockerfile.wildfly.35))<br><br><br><br>             | **Debian** 12.9 "bookworm"<br>**WildFly** 35.0.0.Final<br>**EclipseLink** 4.0.5<br>added support for docker-parameter --user/-u                                                                       |
+| 2025-01-13<br><br><br>                 | `34-20250113`, `34` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/93e62f93916fcf485357a40b835eb98a6c103a1e/image/wildfly/Dockerfile.wildfly.34))<br><br><br>           | **Debian** 12.9 "bookworm"<br>**EclipseLink** 4.0.5<br>added support for docker-parameter --user/-u                                                                                                   |
+| 2024-11-26                             | `34-20241126` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/36531af13f029f03a4781d42ebf647ff2deaafcd/image/wildfly/Dockerfile.wildfly.34))                             | **WildFly** 34.0.1.Final                                                                                                                                                                              |
+| 2024-11-11<br><br><br><br>             | `34-20241111` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/36531af13f029f03a4781d42ebf647ff2deaafcd/image/wildfly/Dockerfile.wildfly.34))<br><br><br><br>             | **Debian** 12.8 "bookworm"<br>**openJRE** 21.0.5<br>**WildFly** 34.0.0.Final<br>**MySQL-Connector** 9.1.0                                                                                             |
+| 2024-11-11<br><br><br>                 | `32-20241111`, `32` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/24838931a9c6d473a1d18377a79df9ef9674a872/image/wildfly/Dockerfile.wildfly.32))<br><br><br>           | **Debian** 12.8 "bookworm"<br>**openJRE** 21.0.5<br>**MySQL-Connector** 9.1.0                                                                                                                         |
+| 2024-09-09<br><br>                     | `32-20240909` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/77443c702b70f94709874960b54328a478d6c880/image/wildfly/Dockerfile.wildfly.32))<br><br>                     | **Debian** 12.7 "bookworm"<br>experimental keystore for server-certificate                                                                                                                            |
+| 2024-07-22<br><br><br>                 | `32-20240722` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/29efa4dff981372bf2b64b1ec87d5138af89dd37/image/wildfly/Dockerfile.wildfly.32))<br><br><br>                 | **Debian** 12.6 "bookworm"<br>**openJRE** 21.0.4<br>**EclipseLink** 4.0.4                                                                                                                             |
+| 2024-06-10                             | `32-20240610` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/d1c1e88fcfd5584f998ece1a355e9be6f34cb579/image/wildfly/Dockerfile.wildfly.32))                             | **MySQL-Connector** 8.4.0                                                                                                                                                                             |
+| 2024-06-03                             | `32-20240603` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/af941b41a16285b1789fe36ea0af2bb7a3b7f70f/image/wildfly/Dockerfile.wildfly.32))                             | **WildFly** 32.0.1.Final                                                                                                                                                                              |
+| 2024-05-23                             | `32-20240523` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/ad6ba5ba960d9e29f00cbe8bc92b4fcdb0d5aec1/image/wildfly/Dockerfile.wildfly.32))                             | **EclipseLink** 4.0.3                                                                                                                                                                                 |
+| 2024-05-13                             | `32-20240513`                                                                                                                                                                    | fixed vulnerabilities in libc                                                                                                                                                                         |
+| 2024-04-29                             | `32-20240429` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/c6a78e0ada518ee18f08aaa19a6e1b57441317c9/image/wildfly/Dockerfile.wildfly.32))                             | **WildFly** 32.0.0.Final                                                                                                                                                                              |
+| 2024-04-18<br><br><br><br>             | `31` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/a5e21db40b173fb988d9bb8eebc2807f646f7004/image/wildfly/Dockerfile.wildfly.31))<br><br><br><br>                      | **Debian** 12.5 "bookworm"<br>**openJRE** 21.0.3<br>**WildFly** 31.0.1.Final<br>**MySQL-Connector** 8.3.0                                                                                             |
+| 2024-01-11<br><br><br><br><br>         | `30` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/7377469445d77d08e4556d4158cfc52df7a45410/image/appserver/Dockerfile.app.wf30))<br><br><br><br><br>                  | **Debian** 12.4 "bookworm"<br>**openJRE** 21.0.1<br>**WildFly** 30.0.1.Final<br>**MySQL-Connector** 8.2.0<br>**EclipseLink** 4.0.2                                                                    |
+| 2023-10-30<br><br><br><br><br>         | `29`<br><br><br><br><br>                                                                                                                                                         | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9<br>**WildFly** 29.0.1.Final<br>**EclipseLink** 4.0.2<br>**KeyCloak-Client** deleted                                                                  |
+| 2023-12-19<br><br>                     | `26-20231219`, `26` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/7377469445d77d08e4556d4158cfc52df7a45410/image/appserver/Dockerfile.app.wf26))<br><br>               | **Debian** 12.4 "bookworm"<br>**EclipseLink** 2.7.14                                                                                                                                                  |
+| 2023-10-30<br><br>                     | `26-20231030`<br><br>                                                                                                                                                            | **Debian** 12.2 "bookworm"<br>**openJRE** 17.0.9                                                                                                                                                      |
+| 2023-07-13                             | `26-20230713`                                                                                                                                                                    | **Debian** 12.0 "bookworm"                                                                                                                                                                            |
+| 2023-05-23                             | `26-20230523`                                                                                                                                                                    | **Debian** 11.7 "bullseye"                                                                                                                                                                            |
+| 2023-04-25<br><br><br><br><br><br>     | `26-20230425`<br><br><br><br><br><br>                                                                                                                                            | **Debian** 11.6 "bullseye"<br>**ZuluJRE** 17.0.7<br>**WildFly** 26.1.3.Final<br>**MySQL-Connector** 8.0.33<br>**EclipseLink** 2.7.12<br>**KeyCloak-Client** 19.0.2                                    |
