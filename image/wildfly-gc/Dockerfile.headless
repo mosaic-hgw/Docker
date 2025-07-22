@@ -1,0 +1,77 @@
+ARG TAG=mosaicgreifswald/wildfly:latest
+FROM ${TAG}
+
+# ###license-information-start###
+# The MOSAIC-Project - Chrome-Web-Driver for WildFly
+# __
+# Copyright (C) 2009 - 2025 Institute for Community Medicine
+# University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+# __
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# ###license-information-end###
+
+# annotations
+LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
+      org.opencontainers.image.vendor="uni-greifswald.de" \
+      org.opencontainers.image.license="AGPLv3"
+
+# variables
+ARG DATE_YMD="20250120"
+ARG CHROME_VERSION="135"
+ARG CHROME_JSON_URL="https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone-with-downloads.json"
+
+# create image
+USER root
+RUN cd ${MOS_TEMP_PATH} && \
+    echo "> 1. install system-updates" && \
+    apt-get update && \
+    if [ "$(date +%F)" != "$(stat -c '%.10y' $(ls -t /var/lib/dpkg/info/*.list | head -n 1))" ]; then apt-get upgrade -y; fi && \
+    \
+    echo "> 2. install jq, unzip and libraries" && \
+    apt-get install -y jq unzip libnss3 libatk-bridge2.0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libxkbcommon0 && \
+    \
+    echo "> 3. get chrome-version" && \
+    ARCH="$([ "$(uname -m)" = "x86_64" ] && echo "linux64" || echo "mac-arm64")" && \
+    (curl -Lfo downloads.json ${CHROME_JSON_URL} || (>&2 /bin/echo -e "\ncurl -Lfo downloads.json ${CHROME_JSON_URL}\n" && exit 1)) && \
+    if [ "$CHROME_VERSION" = "latest" ]; then \
+		CHROME_VERSION="$(jq '.milestones | keys | max' -r downloads.json)" ; \
+	fi && \
+    \
+    echo "> 4. chrome-headless-shell" && \
+    CHROME_URL="$(jq ".milestones[\"$CHROME_VERSION\"].downloads.\"chrome-headless-shell\"[] | select(.platform==\"${ARCH}\").url" -r downloads.json)" && \
+    (curl -Lfo chrome-headless-shell.zip ${CHROME_URL} || (>&2 /bin/echo -e "\ncurl -Lfo chrome-headless-shell.zip ${CHROME_URL}\n" && exit 1)) && \
+    unzip chrome-headless-shell.zip && \
+    mv chrome-headless-shell-${ARCH} ${HOME}/chrome && \
+    ln -sf ${HOME}/chrome/chrome-headless-shell /usr/bin/google-chrome && \
+    \
+    echo "> 5. chrome-driver " && \
+    CHROME_URL="$(jq ".milestones[\"$CHROME_VERSION\"].downloads.chromedriver[] | select(.platform==\"${ARCH}\").url" -r downloads.json)" && \
+    (curl -Lfo chromedriver.zip ${CHROME_URL} || (>&2 /bin/echo -e "\ncurl -Lfo chromedriver.zip ${CHROME_URL}\n" && exit 1)) && \
+    unzip chromedriver.zip && \
+    mv chromedriver-${ARCH}/chromedriver ${HOME}/chrome/ && \
+    ln -sf ${HOME}/chrome/chromedriver /usr/bin/ && \
+    \
+    echo "> 6. register chrome" && \
+    register \
+        --add-version="Chrome-Headless-Shell:\$(google-chrome --version | sed -E 's/.+ ([0-9\.]*)/\1/')" \
+        --add-version="Chrome-Driver:\$(chromedriver --version | sed -E 's/.+ ([0-9\.]*) .+/\1/')" && \
+    \
+    echo "> 7. cleanup" && \
+	apt-get remove --purge --auto-remove -y jq unzip && \
+	apt-get clean && \
+	apt-get autoclean && \
+	apt-get autoremove -y && \
+	rm -rf /var/lib/apt/lists/* /var/cache/apt/* ${MOS_TEMP_PATH}/*
+
+USER ${USER}
