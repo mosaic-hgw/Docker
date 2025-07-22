@@ -22,11 +22,12 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20250707"
-ARG MYSQL_VERSION="8.4.4"
-ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.17-#ARCH-minimal.tar.xz"
-ARG MYSQL_SHA256_X86_64="d51628b4affd0dee2a2d4481896fbb4ea05b65532241fe222672ffb8af38eb7c"
-ARG MYSQL_SHA256_AARCH64="e5895c1297b7aaf0f041570f9ed933b1c5a3a4b97b0a57adbc22f08391679448"
+ARG DATE_YMD="20250722"
+ARG MYSQL_VERSION="8.4.6"
+ARG MYSQL_X86_64_DOWNLOAD_URL="https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.28-x86_64-minimal.tar.xz"
+ARG MYSQL_X86_64_SHA256="f284b17b9e038adbe77f0dd5fb11ed30262286b23a390b8b4e367abc3574c42e"
+ARG MYSQL_AARCH64_DOWNLOAD_URL="https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.28-aarch64.tar.xz"
+ARG MYSQL_AARCH64_SHA256="ab2c553ee4349a6bbe62325d4efcb427204e389264c4759ca32a92eae9aa2abc"
 
 ENV MYSQL_HOME="${HOME}/mysql" \
     MYSQL_OPTS="" \
@@ -63,8 +64,8 @@ RUN cd ${MOS_TEMP_PATH} && \
     \
     echo "> 3. mysql-server" && \
     ARCH="$([ "$(uname -m)" = "x86_64" ] && echo "x86_64" || echo "aarch64")" && \
-    MYSQL_DOWNLOAD_URL="$(echo ${MYSQL_DOWNLOAD_URL} | sed "s,#ARCH,${ARCH},g")" && \
-    MYSQL_SHA256="$([ "${ARCH}" = "x86_64" ] && echo "${MYSQL_SHA256_X86_64}" || echo "${MYSQL_SHA256_AARCH64}")" && \
+    MYSQL_DOWNLOAD_URL="$([ "${ARCH}" = "x86_64" ] && echo "${MYSQL_X86_64_DOWNLOAD_URL}" || echo "${MYSQL_AARCH64_DOWNLOAD_URL}")" && \
+    MYSQL_SHA256="$([ "${ARCH}" = "x86_64" ] && echo "${MYSQL_X86_64_SHA256}" || echo "${MYSQL_AARCH64_SHA256}")" && \
     (curl -Lfo mysql.tar ${MYSQL_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mysql.tar ${MYSQL_DOWNLOAD_URL}\n" && exit 1)) && \
     (sha256sum mysql.tar | grep ${MYSQL_SHA256} > /dev/null || (>&2 echo "sha256sum(${ARCH}) failed $(sha256sum mysql.tar)" && exit 1)) && \
     tar xf mysql.tar && \

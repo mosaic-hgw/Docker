@@ -9,5 +9,6 @@ services:
     volumes:
       - ./db-data:/entrypoint-mysql-data
       - ./sqls:/entrypoint-mysql-sqls
+      - ./update-sqls:/entrypoint-mysql-update-sqls
       - ./my.cnf:/entrypoint-mysql-my-cnf
       - ./logs:/entrypoint-mysql-logs
