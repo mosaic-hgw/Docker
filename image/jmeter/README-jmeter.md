@@ -30,13 +30,13 @@ or a complete test image, which is based on a `wildfly-db` image.
 
 # "versions" shows all installed tools and components, with their versions
 > docker run --rm mosaicgreifswald/jmeter versions
-  last updated               : 2025-01-13 08:32:42
+  last updated               : 2025-07-22 11:07:44
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 12.9
-  zulu-jre                   : 21.0.5
+  Distribution               : Debian GNU/Linux 12.11
+  zulu-jre                   : 21.0.8
   jMeter                     : 5.6.3
   jMeter-Plugins             : 1.4.0
-  java-json                  : 20250107
+  java-json                  : 20250517
   jmeter-prometheus-plugin   : 0.7.1
   
 # "entrypoints" lists all registered entrypoints
@@ -77,17 +77,16 @@ You can change the write-user by using the Docker parameter --user/-u.
 
 > ls -la /path/to/your/logs
 insgesamt 8
-drwxr-xr-x  2 1006 1001 4096 13. Jan 10:25 .
-drwxrwxrwt 10 root root 4096 13. Jan 10:26 ..
--rw-r--r--  1 1006 1001    0 13. Jan 10:25 jmeter.log
--rw-r--r--  2 1006 1001 4096 13. Jan 10:25 stdout.log
+drwxr-xr-x  2 1006 1001 4096 13. Jun 10:25 .
+drwxrwxrwt 10 root root 4096 13. Jun 10:26 ..
+-rw-r--r--  1 1006 1001    0 13. Jun 10:25 jmeter.log
+-rw-r--r--  2 1006 1001 4096 13. Jun 10:25 stdout.log
 ```
 
 
 ## Usage with Docker compose
 ```yml
 # docker-compose.yml
-version: '3'
 services:
   application:
     image: yourcompany/application
@@ -99,21 +98,24 @@ services:
       - application
     env_file:
       - ./envs/jmeter.env
+    environment:
+      MOS_WAIT_FOR_PORTS: application:8080
     volumes:
       - ./jmeter-tests:/entrypoint-jmeter-testfiles
       - ./jmeter-props:/entrypoint-jmeter-properties
       - ./logs:/entrypoint-jmeter-logs
-    entrypoint: /bin/bash
-    command: -c "./wait-for-it.sh application:8080 -t 60 && ./run.sh"
 ```
 
 ## Additional files
 ```shell
-# see all additional files
-> docker run --rm -it mosaicgreifswald/jmeter bash -c "cd /entrypoint-help-and-usage; ls -lah; bash"
+# explore all additional files
+> docker run --rm -it mosaicgreifswald/jmeter examples
 
-# or copy all to local host
-> docker run --rm -v "$(pwd)":"$(pwd)" mosaicgreifswald/jmeter bash -c "cp -R /entrypoint-help-and-usage $(pwd)/help-and-usage"
+# explore and copy interesting files to your local host
+> docker run --rm -itv "/your/local/path/:/tmp/" mosaicgreifswald/jmeter examples --target-dir /tmp
+
+# or copy directly all files to your host
+> docker run --rm -v "/your/local/path/:/tmp/" mosaicgreifswald/jmeter examples --copy-all --target-dir /tmp"
 ```
 You will receive the following directory-tree and can start playing immediately:
 ```
@@ -139,8 +141,9 @@ You will receive the following directory-tree and can start playing immediately:
 
 
 ## Current Software-Versions on this Image
-| Date                       | Tags                                                                                                                                                                     | Changes                                                                                              |
-|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------|
-| 2025-01-13<br><br><br><br> | `5.6.3`, `5`, `latest` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/97b45e6d0b5a50bcd12bc93f6a4952ec4e6531b7/image/mysql/Dockerfile.mysql.8))<br><br><br><br> | **Debian** 12.9 "bookworm"<br>**openJRE** 21.0.5<br>**java-json** 20250107<br>**MySQL-Server** 9.1.0 |
-| 2024-07-22<br><br><br>     | `5.6.3` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/ac36ede7359683a8d5b9c8c81c8b1bb28d4bfe55/image/mysql/Dockerfile.mysql.8))<br><br><br>                    | **Debian** 12.6 "bookworm"<br>**openJRE** 21.0.4<br>**MySQL-Server** 8.4.0                           |
-| 2024-03-05<br><br>         | `5.6.3` ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8))<br><br>                        | **Debian** 12.5 "bookworm"<br>**MySQL-Server** 8.3.0                                                 |
+| Date                       | Tags                                                                                                                                                                                                                                                                                                                                                                        | Changes                                                                                                  |
+|----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| 2025-07-22<br><br><br><br> | [5.6.3](https://hub.docker.com/r/mosaicgreifswald/jmeter/tags?name=5.6.3), [5](https://hub.docker.com/r/mosaicgreifswald/jmeter/tags?name=5), [latest](https://hub.docker.com/r/mosaicgreifswald/jmeter/tags?name=latest) ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/95c4ff0b996ea2e119136ffa294ff5e6de238f7b/image/mysql/Dockerfile.mysql.8))<br><br><br><br> | **Debian** 12.11 "bookworm"<br>**openJRE** 21.0.8<br>**java-json** 20250517<br>**MySQL-Connector** 9.4.0 |
+| 2025-01-13<br><br><br><br> | 5.6.3 ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/97b45e6d0b5a50bcd12bc93f6a4952ec4e6531b7/image/mysql/Dockerfile.mysql.8))<br><br><br><br>                                                                                                                                                                                                                     | **Debian** 12.9 "bookworm"<br>**openJRE** 21.0.5<br>**java-json** 20250107<br>**MySQL-Connector** 9.1.0  |
+| 2024-07-22<br><br><br>     | 5.6.3 ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/ac36ede7359683a8d5b9c8c81c8b1bb28d4bfe55/image/mysql/Dockerfile.mysql.8))<br><br><br>                                                                                                                                                                                                                         | **Debian** 12.6 "bookworm"<br>**openJRE** 21.0.4<br>**MySQL-Connector** 8.4.0                            |
+| 2024-03-05<br><br>         | 5.6.3 ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5c561547b1f3f6edf02a8a84c786e48868298d33/image/mysql/Dockerfile.mysql.8))<br><br>                                                                                                                                                                                                                             | **Debian** 12.5 "bookworm"<br>**MySQL-Connector** 8.3.0                                                  |
