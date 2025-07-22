@@ -133,6 +133,7 @@ start_all_processes() {
   local status
   local started=0
   local count
+  local process_bilance=""
 
   # start all processes
   names="$(awk 'NR > 1 {print $1" "$2}' "${PROCESSES_FILE}" | sort -k2,2n | cut -d ' ' -f 1)"
@@ -164,7 +165,11 @@ start_all_processes() {
     fi
     store_process "name:${name}" "status:${status}"
   done
-  echoSuc "all processes started (${started}/${count}$([ "${SECONDS}" -gt "0" ] && echo " in ${SECONDS}s"))"
+  [ "${started}" -ne "${count}" ] && process_bilance="${started}/${count}"
+  [ -n "${process_bilance}" ] && [ "${SECONDS}" -gt "0" ] && process_bilance+=" in "
+  [ "${SECONDS}" -gt "0" ] && process_bilance+="${SECONDS}s"
+  [ -n "${process_bilance}" ] && process_bilance="(${process_bilance})"
+  echoSuc "all processes started ${process_bilance}"
 
   # stop after x seconds if set delay
   if [ -n "${MOS_SHUTDOWN_DELAY}" ]; then

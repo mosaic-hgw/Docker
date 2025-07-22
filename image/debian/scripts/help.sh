@@ -61,7 +61,7 @@ echo -e "
    in full length.
  ${BLUE}help${TEXT}
    Shows this help. This help has been implemented in all
-   mosaicgreifswald-images since 2025.
+   mosaicgreifswald-images since 2024.
 
  ${HEADER}Examples:${NC}
  > ${CODE}docker run --rm ${CYAN}mosaicgreifswald/zulujre ${BLUE}envs${DARK_GRAY}
@@ -85,13 +85,14 @@ echo -e "
  USER                              mosaic${NC}
 
  > ${CODE}docker run --rm ${CYAN}mosaicgreifswald/wildfly ${BLUE}versions${DARK_GRAY}
- last updated               : 2025-03-18 10:18:44
- Architecture               : x86_64
- Distribution               : Debian GNU/Linux 12.10
- zulu-jre                   : 21.0.6
- WildFly                    : 35.0.1.Final
- MySQL-Connector            : 9.2.0
- EclipseLink                : 4.0.5${NC}
+  last updated               : 2025-07-07 13:18:10
+  Architecture               : x86_64
+  Distribution               : Debian GNU/Linux 12.11
+  zulu-jre                   : 21.0.7
+  WildFly                    : 36.0.1.Final
+  MySQL-Connector            : 9.3.0
+  MariaDB-Connector          : 3.5.4
+  EclipseLink                : 4.0.7${NC}
 
  ${HEADER}Additional help and examples:${NC}${TEXT}
 
@@ -100,10 +101,13 @@ echo -e "
  examples. There are several ways to view these files:
 
  ${HEADER}Explore the files directly in the running container:${NC}
- > ${CODE}docker run --rm -it ${CYAN}<IMAGE>${CODE} bash -c \"cd \\\$ENTRY_USAGE ; ls -la ; bash\"
+ > ${CODE}docker run --rm -it ${CYAN}<IMAGE>${CODE} examples
 
- ${HEADER}Copy files to your host system${NC}
- > ${CODE}docker run --rm -v \"your/path\":\"\$(pwd)\" ${CYAN}<IMAGE>${CODE} bash -c \"cp -R \$ENTRY_USAGE\* \$(pwd)/\"
+ ${HEADER}Explore and copy files to your host system${NC}
+ > ${CODE}docker run --rm -v \"your/path:/tmp\" ${CYAN}<IMAGE>${CODE} examples --target-dir=/tmp
+
+ ${HEADER}Copy all files directly to your host system${NC}
+ > ${CODE}docker run --rm -v \"your/path:/tmp\" ${CYAN}<IMAGE>${CODE} examples --copy-all --target-dir=/tmp
 
  ${TEXT}License-information
  Copyright (C) 2009 - 2025 Institute for Community Medicine
