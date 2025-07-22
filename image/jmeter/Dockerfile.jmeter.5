@@ -22,7 +22,7 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20250113"
+ARG DATE_YMD="20250722"
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 ARG SKIP_VULNERABILITIES_FIX="false"
 
@@ -34,13 +34,13 @@ ARG JMETER_PLUGINS_VERSION="1.4.0"
 ARG JMETER_PLUGINS_DOWNLOAD_URL="http://jmeter-plugins.org/downloads/file/JMeterPlugins-Standard-${JMETER_PLUGINS_VERSION}.zip"
 ARG JMETER_PLUGINS_SHA256="3f740bb9b9a7120ed72548071cd46a5f92929e1ab196acc1b2548549090a2148"
 
-ARG JAVA_JSON_VERSION="20250107"
+ARG JAVA_JSON_VERSION="20250517"
 ARG JAVA_JSON_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/json/json/${JAVA_JSON_VERSION}/json-${JAVA_JSON_VERSION}.jar"
-ARG JAVA_JSON_SHA256="85d4c1ab192d3117fd02c7fff1ec0fe63ade45cf56def7fe950ef060cf06e99f"
+ARG JAVA_JSON_SHA256="3ea61b2a06e31edf1c91134fe9106b0ebb16628be169f3db75bc7a2b06b45796"
 
-ARG MYSQL_CONNECTOR_VERSION="9.1.0"
+ARG MYSQL_CONNECTOR_VERSION="9.4.0"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.tar.gz"
-ARG MYSQL_CONNECTOR_SHA256="8776e2ebc46072c9a47ea59d98298c4273bd9f16a7b26b5dfa4744535aa26c62"
+ARG MYSQL_CONNECTOR_SHA256="49ed93c8b2bea9cb0929b85a8a28837b191d0f8eac6919fdcef16e36e2cd53b3"
 
 ARG PROMETHEUS_PLUGIN_VERSION="0.7.1"
 ARG PROMETHEUS_PLUGIN_DOWNLOAD_URL="https://github.com/johrstrom/jmeter-prometheus-plugin/releases/download/${PROMETHEUS_PLUGIN_VERSION}/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar"
@@ -49,8 +49,7 @@ ARG PROMETHEUS_PLUGIN_SHA256="597f38755cd0b3d5c1837c30fd377144387ddea56bd4d16deb
 ARG JMETER_PLUGINS_PATH="${HOME}/jmeter/lib"
 
 ENV JMETER_HOME="${HOME}/jmeter" \
-    JMETER_LOG_TO_FILE="FALSE" \
-    JMETER_LOG_LEVEL="INFO" \
+    JMETER_LOG_PATTERN="%d{HH:mm:ss.SSS} %p  %m%n" \
     \
     ENTRY_JMETER_TESTS="/entrypoint-jmeter-testfiles" \
     ENTRY_JMETER_PROPERTIES="/entrypoint-jmeter-properties" \
@@ -73,7 +72,7 @@ COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
     apt-get update && \
-    if [ "$(date +%F)" != "$(cat /var/log/apt/history.log | grep 'Date:' | tail -n1 | cut -d' ' -f2)" ]; then apt-get upgrade -y; register --os-updated; fi && \
+    if [ "$(date +%F)" != "$(stat -c '%.10y' $(ls -t /var/lib/dpkg/info/*.list | head -n 1))" ]; then apt-get upgrade -y; fi && \
     \
     echo "> 2. install unzip" && \
     apt-get install -y unzip && \
@@ -87,6 +86,7 @@ RUN cd ${MOS_TEMP_PATH} && \
     (sha512sum apache-jmeter.zip | grep -q ${JMETER_SHA512} || (>&2 echo "sha512sum failed $(sha512sum apache-jmeter.zip)" && exit 1)) && \
     unzip -q apache-jmeter.zip && \
     cp -R apache-jmeter-${JMETER_VERSION}/* ${JMETER_HOME}/ && \
+    mv ${JMETER_HOME}/log4j2.xml ${JMETER_HOME}/bin/log4j2.xml && \
     \
     echo "> 5. jmeter-plugins" && \
     (curl -LfSo JMeterPlugins-Standard.zip ${JMETER_PLUGINS_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -LfSo JMeterPlugins-Standard.zip ${JMETER_PLUGINS_DOWNLOAD_URL}" && echo && exit 1)) && \
@@ -97,12 +97,12 @@ RUN cd ${MOS_TEMP_PATH} && \
     (curl -LfSo ${JMETER_PLUGINS_PATH}/json-${JAVA_JSON_VERSION}.jar ${JAVA_JSON_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -LfSo ${JMETER_PLUGINS_PATH}/json-${JAVA_JSON_VERSION}.jar ${JAVA_JSON_DOWNLOAD_URL}" && echo && exit 1)) && \
     (sha256sum ${JMETER_PLUGINS_PATH}/json-${JAVA_JSON_VERSION}.jar | grep ${JAVA_JSON_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${JMETER_PLUGINS_PATH}/json-${JAVA_JSON_VERSION}.jar)" && exit 1)) && \
     \
-    echo "> 7. prometheus as jmeter-plugin" && \
+    echo "> 7. prometheus as jmeter-plugins" && \
     (curl -LfSo ${JMETER_PLUGINS_PATH}/ext/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar ${PROMETHEUS_PLUGIN_DOWNLOAD_URL} 2>&1 || (>&2 /bin/echo -e "\ncurl -LfSo ${JMETER_PLUGINS_PATH}/ext/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar ${PROMETHEUS_PLUGIN_DOWNLOAD_URL}" && echo && exit 1)) && \
     (sha256sum ${JMETER_PLUGINS_PATH}/ext/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar | grep ${PROMETHEUS_PLUGIN_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${JMETER_PLUGINS_PATH}/ext/jmeter-prometheus-plugin-${PROMETHEUS_PLUGIN_VERSION}.jar)" && exit 1)) && \
     \
     echo "> 8. mysql-connector as jmeter-plugin" && \
-    (curl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
+    (curl -LfSo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -LfSo mysql-connector-java.tar.gz ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
     tar xf mysql-connector-java.tar.gz && \
     mv mysql-connector-j-*/mysql*jar ${JMETER_PLUGINS_PATH}/mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar && \
     (sha256sum ${JMETER_PLUGINS_PATH}/mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar | grep ${MYSQL_CONNECTOR_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${JMETER_PLUGINS_PATH}/mysql-connector-java-${MYSQL_CONNECTOR_VERSION}.jar)" && exit 1)) && \
@@ -126,8 +126,8 @@ RUN cd ${MOS_TEMP_PATH} && \
            OLD_VERSION=$(echo ${OLD_JAR} | rev | cut -d'-' -f1 | rev | sed 's/.jar//') && \
            if [ "${OLD_VERSION}" = "${VERSION}" ]; then echo "same version" && continue; fi && \
            JAR_FILE="${NAME}-${VERSION}.jar" && \
-           echo curl -Lfso $(dirname "${OLD_JAR}")/${JAR_FILE} "${URL}/${VERSION}/${JAR_FILE}" && \
-           curl -Lfso $(dirname "${OLD_JAR}")/${JAR_FILE} "${URL}/${VERSION}/${JAR_FILE}" && \
+           echo curl -LfSo $(dirname "${OLD_JAR}")/${JAR_FILE} "${URL}/${VERSION}/${JAR_FILE}" && \
+           curl -LfSo $(dirname "${OLD_JAR}")/${JAR_FILE} "${URL}/${VERSION}/${JAR_FILE}" && \
            rm -f ${OLD_JAR} && \
            UPDATED="true" && echo "ok" || echo "failed"; \
        done ; \
@@ -136,27 +136,27 @@ RUN cd ${MOS_TEMP_PATH} && \
     \
     echo "> 10. register jmeter" && \
     register \
-      --add-version="jMeter:\$(${JMETER_HOME}/bin/jmeter -v 2>/dev/null | grep -oE '[0-9\.]+\.[0-9 r]+' | cat)" \
+      --add-version="jMeter:\$(${JMETER_HOME}/bin/jmeter -v 2>/dev/null | awk '/Version / {print \$NF}')" \
       --add-version="jMeter-Plugins:${JMETER_PLUGINS_VERSION}" \
       --add-version="java-json:${JAVA_JSON_VERSION}" \
       --add-version="jmeter-prometheus-plugin:${PROMETHEUS_PLUGIN_VERSION}" \
       --add-entrypoint="ENTRY_JMETER_TESTS:${ENTRY_JMETER_TESTS}" \
       --add-entrypoint="ENTRY_JMETER_PROPERTIES:${ENTRY_JMETER_PROPERTIES}" \
       --add-entrypoint="ENTRY_JMETER_LOGS:${ENTRY_JMETER_LOGS}" \
-      --add-run-script="30:action:${JMETER_HOME}/run_jmeter.sh" && \
+      --add-process="jmeter:30:action:${JMETER_HOME}/run_jmeter.sh:" && \
     \
     echo "> 10. cleanup" && \
     apt-get remove --purge --auto-remove -y unzip && \
     apt-get clean && \
     apt-get autoclean && \
-    apt-get autoremove && \
+    apt-get autoremove -y && \
     ln -s ${ENTRY_LOGS}/jmeter ${ENTRY_JMETER_LOGS} && \
     ln -s ${JMETER_HOME}/bin/jmeter /usr/bin/jmeter && \
     chown ${USER}:${USER} -R ${JMETER_HOME} ${ENTRY_JMETER_LOGS} && \
-    chmod 777 ${JMETER_HOME} && chmod 555 -R ${JMETER_HOME}/*.sh && \
+    chmod 777 ${JMETER_HOME} && chmod 755 -R ${JMETER_HOME}/*.sh && \
     rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/* ${HOME}/jmeter.log
 
 USER ${USER}
 
 # ports
-EXPOSE 9270 4445
+EXPOSE 9270 4445 9090
