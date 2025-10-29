@@ -123,9 +123,20 @@ end-if
 #>available-env< WF_DATASOURCES_QUERY_TIMEOUT 30
 if (result ~= "[0-9]+") of :resolve-expression(expression=${env.WF_DATASOURCES_QUERY_TIMEOUT})
     set temp=${env.WF_DATASOURCES_QUERY_TIMEOUT}
-	for ds in /subsystem=datasources:read-children-names(child-type=data-source)
-    	echo \>\>\> set datasource-query-timeout for $ds to $temp seconds
-    	/subsystem=datasources/data-source=$ds:write-attribute(name=query-timeout, value=$temp)
+    for ds in /subsystem=datasources:read-children-names(child-type=data-source)
+        echo \>\>\> set datasource-query-timeout for $ds to $temp seconds
+        /subsystem=datasources/data-source=$ds:write-attribute(name=query-timeout, value=$temp)
+    done
+end-if
+
+# set custom deployment-timeout
+################################
+#>available-env< WF_DEPLOYMENT_TIMEOUT 600
+if (result ~= "[0-9]+") of :resolve-expression(expression=${env.WF_DEPLOYMENT_TIMEOUT})
+    set temp=${env.WF_DEPLOYMENT_TIMEOUT}
+    for scanner in /subsystem=deployment-scanner:read-children-names(child-type=scanner)
+        echo \>\>\> set deployment-timeout for $scanner to $temp seconds
+        /subsystem=deployment-scanner/scanner=$scanner:write-attribute(name=deployment-timeout, value=$temp)
     done
 end-if
 

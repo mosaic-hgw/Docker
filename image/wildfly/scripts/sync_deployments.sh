@@ -26,6 +26,10 @@ while true; do
     if [ ${#SRC[@]} -gt 0 ]; then
         for SRC_ITEM in "${SRC[@]}"; do
             SRC_NAME=$(echo ${SRC_ITEM} | cut -d, -f2)
+            if [ -n "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}" ] && echo ${SRC_NAME} | grep -qE "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}" >/dev/null 2>1; then
+                echoInfo "ignore file: ${SRC_NAME}"
+                continue
+            fi
             for DES_ITEM in "${DES[@]}"; do
                 DES_NAME=$(echo ${DES_ITEM} | cut -d, -f2)
                 if [ "${SRC_NAME}" = "${DES_NAME}" ]; then

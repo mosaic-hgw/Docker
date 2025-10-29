@@ -45,27 +45,52 @@ if [[ "${WF_MARKERFILES,,}" != "$(cat ${MOS_READY_PATH}/markerfiles_mode)" ]]; t
     rm -f "${MOS_READY_PATH}/markerfiles.cli.completed"
 fi
 
-${WILDFLY_HOME}/enable_keystore.sh
+unset EXIT_CODE
+bash ${WILDFLY_HOME}/enable_keystore.sh
 EXIT_CODE=$?
-if [ ${EXIT_CODE} -ne 0 ]; then
+if [ -z "${EXIT_CODE}" ]; then
+    echoErr "keystore-test was not run"
+    exit 1
+elif [ ${EXIT_CODE} -ne 0 ]; then
     echoErr "keystore-test has failed"
     exit ${EXIT_CODE}
 fi
 
 echo "${LINE}"
 
-${WILDFLY_HOME}/add_jboss_cli.sh
+unset EXIT_CODE
+bash ${WILDFLY_HOME}/add_jboss_cli.sh
 EXIT_CODE=$?
-if [ ${EXIT_CODE} -ne 0 ]; then
+if [ -z "${EXIT_CODE}" ]; then
+    echoErr "jboss-cli was not run"
+    exit 1
+elif [ ${EXIT_CODE} -ne 0 ]; then
     echoErr "jboss-cli is interrupted"
     exit ${EXIT_CODE}
 fi
 
-[[ "${WF_MARKERFILES,,}" == "false" ]] && ${WILDFLY_HOME}/sync_deployments.sh &
+if [[ "${WF_MARKERFILES,,}" == "false" ]]; then
+  bash ${WILDFLY_HOME}/sync_deployments.sh &
+
+#>available-env< WF_DISABLE_DEPLOYMENTS_BY_REGEX
+elif [ -n "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}" ] && ls ${ENTRY_WILDFLY_DEPLOYS}/ | grep -qE "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}" >/dev/null 2>1; then
+    echoInfo "Disable Deployments by regular expression (WF_DISABLE_DEPLOYMENTS_BY_REGEX)"
+    DEP_NAMES="$(ls ${ENTRY_WILDFLY_DEPLOYS}/* | grep -E "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}")"
+    for DEP_NAME in ${DEP_NAMES}; do
+        [[ $(basename "${DEP_NAME,,}") =~ \.((un)?deployed|isdeploying|skipdeploy) ]] && continue
+        if touch --reference="${DEP_NAME}" "${DEP_NAME}.skipdeploy"; then
+            echoInfo ">>> disable $(basename "${DEP_NAME}")"
+        else
+            echoErr ">>> can not disable $(basename "${DEP_NAME}"), permission denied"
+            exit 125
+        fi
+    done
+    echo "${LINE}"
+fi
 
 rm -f ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/current/*
 
 WF_OPTS="-Djboss.server.log.dir=${ENTRY_LOGS}/wildfly $([[ ${WF_DEBUG,,} =~ ^(true|yes|on|1)$ ]] && echo "--debug")"
-${WILDFLY_HOME}/bin/standalone.sh -b 0.0.0.0 -bmanagement 0.0.0.0 ${WF_OPTS}
+bash ${WILDFLY_HOME}/bin/standalone.sh -b 0.0.0.0 -bmanagement 0.0.0.0 ${WF_OPTS}
 
 echoWarn "WildFly-Server is stopped"

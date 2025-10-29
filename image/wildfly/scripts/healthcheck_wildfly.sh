@@ -3,7 +3,7 @@
 [ -f "${MOS_READY_PATH}/jboss_cli_block" ] && exit 1
 
 # check is wildfly running
-${WILDFLY_HOME}/wildfly_started.sh || (echo "wildfly not running" && exit 1)
+bash ${WILDFLY_HOME}/wildfly_started.sh || (echo "wildfly not running" && exit 1)
 
 # if set WF_HEALTHCHECK_URLS via env-variable, then check this for request-code 200
 if [ -n "$WF_HEALTHCHECK_URLS" ]

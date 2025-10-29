@@ -1,0 +1,196 @@
+ARG TAG=mosaicgreifswald/zulujre:21
+FROM ${TAG}
+
+# ###license-information-start###
+# The MOSAIC-Project - WildFly with MySQL-Connector and Healthcheck
+# __
+# Copyright (C) 2009 - ${build.year} Institute for Community Medicine
+# University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+# __
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# ###license-information-end###
+
+# variables
+ARG DATE_YMD="20251028"
+ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
+
+ARG WILDFLY_VERSION="38.0.0.Final"
+ARG WILDFLY_DOWNLOAD_URL="https://github.com/wildfly/wildfly/releases/download/${WILDFLY_VERSION}/wildfly-${WILDFLY_VERSION}.tar.gz"
+ARG WILDFLY_SHA256="f6dddf4338a6cf872e057dccefbf88285d34a090262eb9b664ce79b13a56c2d0"
+
+ARG MYSQL_CONNECTOR_VERSION="9.5.0"
+ARG MYSQL_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/com/mysql/mysql-connector-j/${MYSQL_CONNECTOR_VERSION}/mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.jar"
+ARG MYSQL_CONNECTOR_SHA256="f2ca3dfaf00d4aa311470db7ea3051962944ba0cb60005a2f75467549c39f425"
+
+ARG MARIA_CONNECTOR_VERSION="3.5.6"
+ARG MARIA_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/mariadb/jdbc/mariadb-java-client/${MARIA_CONNECTOR_VERSION}/mariadb-java-client-${MARIA_CONNECTOR_VERSION}.jar"
+ARG MARIA_CONNECTOR_SHA256="a129703efd7b0f334564d46753de999f09b3a361489a2eb647e6020390981cc9"
+
+ARG PSQL_CONNECTOR_VERSION="42.7.8"
+ARG PSQL_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/postgresql/postgresql/${PSQL_CONNECTOR_VERSION}/postgresql-${PSQL_CONNECTOR_VERSION}.jar"
+ARG PSQL_CONNECTOR_SHA256="2a32a9dcbc42d67a50ad3a0de5efd102c8d2be46720045f2cbd6689f160ab7c7"
+
+ARG ECLIPSELINK_VERSION="4.0.8"
+ARG ECLIPSELINK_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/eclipse/persistence/eclipselink/${ECLIPSELINK_VERSION}/eclipselink-${ECLIPSELINK_VERSION}.jar"
+ARG ECLIPSELINK_SHA256="05f0dbf1a3ce5add1df7d571300be295ff8f224741f249e7aa4b402865b5be75"
+ARG ECLIPSEJSON_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/eclipse/persistence/org.eclipse.persistence.json/${ECLIPSELINK_VERSION}/org.eclipse.persistence.json-${ECLIPSELINK_VERSION}.jar"
+ARG ECLIPSEJSON_SHA256="1093267ab8c05ec3fb8e0f7a5a3f64ce9c3830b2612721306e0fa7417bcb8ce4"
+ARG ECLIPSECORE_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/eclipse/persistence/org.eclipse.persistence.core/${ECLIPSELINK_VERSION}/org.eclipse.persistence.core-${ECLIPSELINK_VERSION}.jar"
+ARG ECLIPSECORE_SHA256="55a7fe0bccc2a32a85c5e0a388eabc0b56c884f28e6b2f80de0f9ea20a507fbe"
+
+ENV WILDFLY_HOME="${HOME}/wildfly" \
+    JBOSS_CLI="${HOME}/wildfly/bin/jboss-cli.sh" \
+    LAUNCH_JBOSS_IN_BACKGROUND="true" \
+    LOG4J_FORMAT_MSG_NO_LOOKUPS="true" \
+    \
+    ENTRY_WILDFLY_CLI="/entrypoint-wildfly-cli" \
+    ENTRY_WILDFLY_DEPLOYS="/entrypoint-wildfly-deployments" \
+    ENTRY_WILDFLY_ADDINS="/entrypoint-wildfly-addins" \
+	ENTRY_WILDFLY_LOGS="/entrypoint-wildfly-logs" \
+	ENTRY_WILDFLY_SERVER_KEYSTORE="/entrypoint-wildfly-server-keystore" \
+	\
+    WF_MARKERFILES="auto" \
+    WF_ADMIN_USER="admin" \
+    WF_DEBUG="false" \
+    DEBUG_PORT="*:8787" \
+    JAVA_OPTS="-server -Xms1G -Xmx6G -XX:MetaspaceSize=512M -XX:MaxMetaspaceSize=1G -XX:StringTableSize=1000003 -Djava.net.preferIPv4Stack=true -Djava.awt.headless=true -Djboss.modules.system.pkgs=org.jboss.byteman" \
+	WF_MAX_PARAMETERS="100000" \
+	WF_ENABLE_HTTP2="FALSE"
+
+# annotations
+LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
+      org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/wildfly" \
+      org.opencontainers.image.version="38-${DATE_YMD}" \
+      org.opencontainers.image.vendor="uni-greifswald.de" \
+      org.opencontainers.image.title="mosaic-wildfly" \
+      org.opencontainers.image.license="AGPLv3" \
+      org.opencontainers.image.description="This is a Docker image for the Java application server WildFly. The image is based on slim debian-image and prepared for the tools of the university medicine greifswald (but can also be used for other similar projects)."
+
+# create folders and permissions
+USER root
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${WILDFLY_HOME}"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}/"]
+RUN cd ${MOS_TEMP_PATH} && \
+    echo "> 1. install system-updates" && \
+    if [ "$(date +%F)" != "$(stat -c '%.10y' $(ls -t /var/lib/dpkg/info/*.list | head -n 1))" ]; then \
+		apt-get update && apt-get upgrade -y; \
+	fi && \
+    \
+    echo "> 2. create folders and permissions" && \
+    mkdir -m 777 ${ENTRY_WILDFLY_CLI} ${ENTRY_WILDFLY_DEPLOYS} ${ENTRY_LOGS}/wildfly && \
+    chown ${USER}:${USER} -R ${ENTRY_WILDFLY_CLI} ${ENTRY_WILDFLY_DEPLOYS} ${ENTRY_LOGS}/wildfly && \
+    ln -s ${ENTRY_LOGS}/wildfly ${ENTRY_WILDFLY_LOGS} && \
+    \
+    echo "> 3.1. get mysql-connector " && \
+    (curl -LfsSo mysql-${MYSQL_CONNECTOR_VERSION}.jar ${MYSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -LfsSo mysql-${MYSQL_CONNECTOR_VERSION}.jar ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
+    echo "> 3.2. get mariadb-connector " && \
+    (curl -LfsSo mariadb-${MARIA_CONNECTOR_VERSION}.jar ${MARIA_CONNECTOR_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -LfsSo mariadb-${MARIA_CONNECTOR_VERSION}.jar ${MARIA_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
+    echo "> 3.3. get postgresql-connector " && \
+    (curl -LfsSo postgresql-${PSQL_CONNECTOR_VERSION}.jar ${PSQL_CONNECTOR_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -LfsSo postgresql-${PSQL_CONNECTOR_VERSION}.jar ${PSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1))  && \
+    echo "> 3.4. get eclipselink " && \
+    (curl -LfsSo eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -LfsSo eclipselink-${ECLIPSELINK_VERSION}.jar ${ECLIPSELINK_DOWNLOAD_URL}\n" && exit 1))  && \
+    echo "> 3.5. get eclipse.persistence.json " && \
+    (curl -LfsSo eclipsejson-${ECLIPSELINK_VERSION}.jar ${ECLIPSEJSON_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -LfsSo eclipsejson-${ECLIPSELINK_VERSION}.jar ${ECLIPSEJSON_DOWNLOAD_URL}\n" && exit 1))  && \
+    echo "> 3.6. get eclipse.persistence.core " && \
+	(curl -LfsSo eclipsecore-${ECLIPSELINK_VERSION}.jar ${ECLIPSECORE_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -LfsSo eclipsecore-${ECLIPSELINK_VERSION}.jar ${ECLIPSECORE_DOWNLOAD_URL}\n" && exit 1))  && \
+    (( \
+    	sha256sum mysql-${MYSQL_CONNECTOR_VERSION}.jar | grep -q ${MYSQL_CONNECTOR_SHA256} && \
+    	sha256sum mariadb-${MARIA_CONNECTOR_VERSION}.jar | grep -q ${MARIA_CONNECTOR_SHA256} && \
+    	sha256sum postgresql-${PSQL_CONNECTOR_VERSION}.jar | grep -q ${PSQL_CONNECTOR_SHA256} && \
+		sha256sum eclipselink-${ECLIPSELINK_VERSION}.jar | grep -q ${ECLIPSELINK_SHA256} && \
+		sha256sum eclipsejson-${ECLIPSELINK_VERSION}.jar | grep -q ${ECLIPSEJSON_SHA256} && \
+		sha256sum eclipsecore-${ECLIPSELINK_VERSION}.jar | grep -q ${ECLIPSECORE_SHA256} \
+    ) || ( \
+    	echo ; \
+    	sha256sum mysql-${MYSQL_CONNECTOR_VERSION}.jar | grep -q ${MYSQL_CONNECTOR_SHA256} || >&2 echo -e "\nsha256sum failed $(sha256sum mysql-${MYSQL_CONNECTOR_VERSION}.jar)" ; \
+    	sha256sum mariadb-${MARIA_CONNECTOR_VERSION}.jar | grep -q ${MARIA_CONNECTOR_SHA256} || >&2 echo -e "\nsha256sum failed $(sha256sum mariadb-${MARIA_CONNECTOR_VERSION}.jar)" ; \
+    	sha256sum postgresql-${PSQL_CONNECTOR_VERSION}.jar | grep -q ${PSQL_CONNECTOR_SHA256} || >&2 echo -e "\nsha256sum failed $(sha256sum postgresql-${PSQL_CONNECTOR_VERSION}.jar)" ; \
+		sha256sum eclipselink-${ECLIPSELINK_VERSION}.jar | grep -q ${ECLIPSELINK_SHA256} || >&2 echo "sha256sum failed $(sha256sum eclipselink-${ECLIPSELINK_VERSION}.jar)" ; \
+		sha256sum eclipsejson-${ECLIPSELINK_VERSION}.jar | grep -q ${ECLIPSEJSON_SHA256} || >&2 echo "sha256sum failed $(sha256sum eclipsejson-${ECLIPSELINK_VERSION}.jar)" ; \
+		sha256sum eclipsecore-${ECLIPSELINK_VERSION}.jar | grep -q ${ECLIPSECORE_SHA256} || >&2 echo "sha256sum failed $(sha256sum eclipsecore-${ECLIPSELINK_VERSION}.jar)" ; \
+		exit 1 \
+	)) && \
+    \
+    echo "> 4. install wildfly" && \
+    if [ -f "${WILDFLY_HOME}/wildfly-${WILDFLY_VERSION}.tar.gz" ]; then \
+    	mv "${WILDFLY_HOME}/wildfly-${WILDFLY_VERSION}.tar.gz" ${MOS_TEMP_PATH} ; \
+    else \
+    	curl -LfsSo wildfly-${WILDFLY_VERSION}.tar.gz ${WILDFLY_DOWNLOAD_URL} || (>&2 echo -e "\ncurl -LfsSo wildfly-${WILDFLY_VERSION}.tar.gz ${WILDFLY_DOWNLOAD_URL}\n" && exit 1) ; \
+    fi && \
+    (sha256sum wildfly-${WILDFLY_VERSION}.tar.gz | grep -q ${WILDFLY_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum wildfly-${WILDFLY_VERSION}.tar.gz)" && exit 1)) && \
+    tar xf wildfly-${WILDFLY_VERSION}.tar.gz && \
+    cp -R wildfly-${WILDFLY_VERSION}/* ${WILDFLY_HOME}/ && \
+    #rm -rf ${WILDFLY_HOME}/bin/*.bat ${WILDFLY_HOME}/bin/*.ps1 ${WILDFLY_HOME}/docs && \
+    mkdir -pm 777 ${WILDFLY_HOME}/standalone/log && touch ${WILDFLY_HOME}/standalone/log/server.log && \
+    \
+    echo "> 5. prepare wildfly" && \
+    (${WILDFLY_HOME}/bin/standalone.sh &) && \
+    START=$(date +%s) && \
+    TIMEOUT=60 && \
+    (until `/bin/bash ${WILDFLY_HOME}/wildfly_started.sh`;do sleep 1;SEC=$(($(date +%s)-START));if [ ${SEC} -ge $TIMEOUT ];then >&2 echo "starting-timeout (TIMEOUT=${TIMEOUT})";exit 1;fi;done) && \
+    ($JBOSS_CLI --connect --commands=" \
+        module add --name=clients.mysql --resources=${MOS_TEMP_PATH}/mysql-${MYSQL_CONNECTOR_VERSION}.jar --dependencies=javax.api\,javax.transaction.api, \
+        /subsystem=datasources/jdbc-driver=mysql:add(driver-module-name=clients.mysql,driver-class-name=com.mysql.cj.jdbc.Driver), \
+        module add --name=clients.mariadb --resources=${MOS_TEMP_PATH}/mariadb-${MARIA_CONNECTOR_VERSION}.jar --dependencies=javax.api\,javax.transaction.api, \
+        /subsystem=datasources/jdbc-driver=mariadb:add(driver-module-name=clients.mariadb,driver-class-name=org.mariadb.jdbc.Driver), \
+        module add --name=clients.postgresql --resources=${MOS_TEMP_PATH}/postgresql-${PSQL_CONNECTOR_VERSION}.jar --dependencies=javax.api\,javax.transaction.api, \
+        /subsystem=datasources/jdbc-driver=postgresql:add(driver-module-name=clients.postgresql,driver-class-name=org.postgresql.Driver), \
+        module add --name=org.eclipse.persistence --resources=${MOS_TEMP_PATH}/eclipselink-${ECLIPSELINK_VERSION}.jar --dependencies=java.logging\,java.management\,java.naming\,jakarta.annotation.api\,jakarta.enterprise.api\,jakarta.json.api\,jakarta.persistence.api\,jakarta.transaction.api\,jakarta.validation.api\,jakarta.xml.bind.api\,org.antlr\,org.jboss.as.jpa.spi\,org.jboss.logging\,org.jboss.vfs\,java.rmi\,java.desktop\,javax.api\,org.eclipse.persistence.json, \
+        module add --name=org.eclipse.persistence.json --resources=${MOS_TEMP_PATH}/eclipsejson-${ECLIPSELINK_VERSION}.jar --dependencies=org.eclipse.persistence.core, \
+        module add --name=org.eclipse.persistence.core --resources=${MOS_TEMP_PATH}/eclipsecore-${ECLIPSELINK_VERSION}.jar, \
+        module remove --name=system.layers.base.org.eclipse.persistence, \
+        /extension=org.wildfly.extension.microprofile.health-smallrye:add, \
+        /subsystem=microprofile-health-smallrye:add, \
+        /subsystem=undertow/server=default-server/ajp-listener=myListener:add(socket-binding=ajp, scheme=http, enabled=true), \
+        /subsystem=elytron/file-audit-log=local-audit:remove(), \
+        /subsystem=logging/pattern-formatter=DATE_DETAILED:add(pattern=\"%d %-5p %-4L [%c] (%t) %s%E%n\"), \
+        /subsystem=logging/pattern-formatter=DATE_COMPACT:add(pattern=\"%d %-5.5p %-4.4L %-40.40c{2.} | %m%n\"), \
+        /subsystem=logging/pattern-formatter=NO_DATE_DETAILED:add(pattern=\"%d{HH:mm:ss,SSS} %-5p %-4L [%c] (%t) %s%E%n\"), \
+        /subsystem=logging/pattern-formatter=NO_DATE_COMPACT:add(pattern=\"%d{HH:mm:ss,SSS} %-5.5p %-4.4L %-40.40c{2.} | %m%n\")" || exit 1) && \
+    cp ${WILDFLY_HOME}/standalone/configuration/standalone.xml ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/standalone.${USER}.xml && \
+    ($JBOSS_CLI --connect --commands=" \
+        /subsystem=deployment-scanner/scanner=default:write-attribute(name=scan-enabled,value=false), \
+        /subsystem=deployment-scanner/scanner=entrypoint:add(scan-interval=5000,path=${ENTRY_WILDFLY_DEPLOYS}), \
+        :shutdown" || exit 1) && \
+    echo -n "true" > ${MOS_READY_PATH}/markerfiles_mode && \
+    \
+    echo "> 6. register wildfly" && \
+    register \
+      --add-version="WildFly:${WILDFLY_VERSION}" \
+      --add-version="MySQL-Connector:${MYSQL_CONNECTOR_VERSION}" \
+      --add-version="MariaDB-Connector:${MARIA_CONNECTOR_VERSION}" \
+      --add-version="PostgreSQL-Connector:${PSQL_CONNECTOR_VERSION}" \
+      --add-version="EclipseLink:${ECLIPSELINK_VERSION}" \
+      --add-entrypoint="ENTRY_WILDFLY_CLI:${ENTRY_WILDFLY_CLI}" \
+      --add-entrypoint="ENTRY_WILDFLY_DEPLOYS:${ENTRY_WILDFLY_DEPLOYS}" \
+      --add-entrypoint="ENTRY_WILDFLY_ADDINS:${ENTRY_WILDFLY_ADDINS}" \
+      --add-entrypoint="ENTRY_WILDFLY_LOGS:${ENTRY_WILDFLY_LOGS}" \
+      --add-entrypoint="ENTRY_WILDFLY_SERVER_KEYSTORE:${ENTRY_WILDFLY_SERVER_KEYSTORE}" \
+      --add-healthcheck-script="${WILDFLY_HOME}/healthcheck_wildfly.sh" \
+      --add-process="wildfly:20:service:${WILDFLY_HOME}/run_wildfly.sh:${WILDFLY_HOME}/wildfly_started.sh" && \
+    \
+    echo "> 7. cleanup" && \
+    apt-get clean && \
+    apt-get autoclean && \
+    apt-get autoremove -y && \
+    mkdir -pm 777 ${WILDFLY_HOME}/standalone/data/addins && \
+    ln -s ${WILDFLY_HOME}/standalone/data/addins ${ENTRY_WILDFLY_ADDINS} && \
+    chown ${USER}:${USER} -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_ADDINS} ${ENTRY_WILDFLY_LOGS} ${ENTRY_USAGE} && \
+    chmod 777 -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_LOGS} ${ENTRY_USAGE} && \
+    rm -rf ${MOS_TEMP_PATH}/* ${WILDFLY_HOME}/*.tar.gz ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/current/* ${WILDFLY_HOME}/standalone/log/* /var/lib/apt/lists/* /var/cache/apt/*
+
+USER ${USER}
+
+# ports
+EXPOSE 8009 8080 9990 8443 9993 8787

@@ -18,7 +18,7 @@ services:
       - ./envs/wf_commons.env
     environment:
       WF_ADMIN_PASS: top-secret
-      MOS_WAIT_FOR_PORTS: mysql:3306:60
+      MOS_WAIT_FOR_PORTS: mysql:3306
     volumes:
       - ./addins:/entrypoint-wildfly-addins
       - ./deployments:/entrypoint-wildfly-deployments
