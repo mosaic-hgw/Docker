@@ -23,10 +23,10 @@ Only the slimmer JRE from Azul-Zulu is installed.
 
 # "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/zulujre versions
-  last updated               : 2025-07-21 17:56:41
+  last updated               : 2025-10-29 09:19:21
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 12.11
-  zulu-jre                   : 21.0.8
+  Distribution               : Debian GNU/Linux 13.1
+  zulu-jre                   : 21.0.9
   
 # "entrypoints" lists all registered entrypoints.
 > docker run --rm mosaicgreifswald/zulujre entrypoints
@@ -36,7 +36,7 @@ Only the slimmer JRE from Azul-Zulu is installed.
 
 # get java-version
 > docker run --rm -it mosaicgreifswald/zulujre java -version
-openjdk version "21.0.8" 2025-07-15 LTS
+openjdk version "21.0.9" 2025-10-21 LTS
 ```
 
 ## Special usage, multiple java-versions (whoever needs it)
@@ -46,38 +46,39 @@ openjdk version "21.0.8" 2025-07-15 LTS
 
 # show all versions (last installed java is per default selected as "current") 
 > docker run --rm mosaicgreifswald/zulujre:17-21 versions
-  last updated               : 2025-07-21 18:06:31
+  last updated               : 2025-10-29 09:51:16
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 12.11
-  zulu-jre                   : 21.0.8
-  zulu-jre                   : 17.0.15 (current)
+  Distribution               : Debian GNU/Linux 13.1
+  zulu-jre                   : 21.0.9 
+  zulu-jre                   : 17.0.17 (current)
 
 > docker run --rm mosaicgreifswald/zulujre:17-21 java -version
-openjdk version "17.0.15" 2025-04-15 LTS
+openjdk version "17.0.17" 2025-10-21 LTS
 
 # switch java-version per environment-variable
 > docker run --rm -e JAVA_VERSION=21 mosaicgreifswald/zulujre:17-21 versions
-  last updated               : 2025-07-21 18:06:31
+  last updated               : 2025-10-29 09:51:16
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 12.11
-  zulu-jre                   : 21.0.8 (current)
-  zulu-jre                   : 17.0.15
+  Distribution               : Debian GNU/Linux 13.1
+  zulu-jre                   : 21.0.9 (current)
+  zulu-jre                   : 17.0.17
 
 > docker run --rm -e JAVA_VERSION=21 mosaicgreifswald/zulujre:17-21 java -version
-openjdk version "21.0.8" 2025-07-15 LTS
+openjdk version "21.0.9" 2025-10-21 LTS
 
 # switch java-version in running container
 > docker run --rm -it mosaicgreifswald/zulujre:17-21 bash
 > java -version
-openjdk version "17.0.15" 2025-04-15 LTS
+openjdk version "17.0.17" 2025-10-21 LTS
 
 > JAVA_VERSION=21; java -version
-openjdk version "21.0.8" 2025-07-15 LTS
+openjdk version "21.0.9" 2025-10-21 LTS
 ```
 
 ## Current Software-Versions on this Image
 | Date               | Tags                                                                                                                                                                                                                                     | Changes                                         |
 |--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------|
+| 2025-10-29<br><br> | [21.0.9](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=21.0.9), [21](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=21), [latest](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=latest)<br><br> | **Debian** 13.1 "trixie"<br>**Java** 21.0.9     |
 | 2025-07-22<br><br> | [21.0.8](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=21.0.8), [21](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=21), [latest](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=latest)<br><br> | **Debian** 12.11 "bookworm"<br>**Java** 21.0.8  |
 | 2025-04-25<br><br> | [21.0.7](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=21.0.7) ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/5a4e7537aa5a67634c13662101f5f6ca44ac30d2/image/zulujre/Dockerfile.zulujre))<br><br>                 | **Debian** 12.10 "bookworm"<br>**Java** 21.0.7  |
 | 2025-01-24<br><br> | [21.0.6](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=21.0.6) <br><br>                                                                                                                                                    | **Debian** 12.9 "bookworm"<br>**Java** 21.0.6   |
