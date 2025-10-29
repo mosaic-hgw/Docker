@@ -13,10 +13,10 @@ VERSION_NUMBER='2025.1.0'
 VERSION="\n Version ${VERSION_NUMBER} from 2025-03-25\n Maintained by Ronny Schuldt\n"
 PROCESSES_FILE="${HOME}/mosaic_processes"
 COLS=( \
-  "name:10:Name" \
+  "name:15:Name" \
   "order:5:Order" \
   "type:7:Type" \
-  "run_script:50:Run-Script" \
+  "run_script:55:Run-Script" \
   "started_script:50:Started-Script" \
   "status:10:Status" \
   "pid:6:PID" \
@@ -255,7 +255,7 @@ start_process() {
     action)
       echoInfo "start action ${name}"
       echoDeb "${run_script} &"
-      ${run_script} &
+      bash "${run_script}" &
       pid=$!
       store_process "name:${name}" "pid:${pid}" "ts_started:$(date +%s%3N)" "count_started:$((count_started+1))" "status:started" &
       wait ${pid}
@@ -266,7 +266,7 @@ start_process() {
       if [ "x${started_script}" != "x" ]; then
         echoInfo "start service ${name} and wait for running with ${started_script}"
         echoDeb "${run_script} &"
-        ${run_script} &
+        bash "${run_script}" &
         pid=$!
         store_process "name:${name}" "pid:${pid}" "ts_started:$(date +%s%3N)" "count_started:$((count_started+1))" "status:started" &
         while ! ${started_script} ; do
@@ -279,7 +279,7 @@ start_process() {
       else
         echoInfo "start service ${name}"
         echoDeb "${run_script} &"
-        ${run_script} &
+        bash "${run_script}" &
         pid=$!
         store_process "name:${name}" "pid:${pid}" "ts_started:$(date +%s%3N)" "count_started:$((count_started+1))" "status:ready" &
         exit_code=0 # ok

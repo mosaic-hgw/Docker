@@ -42,14 +42,16 @@ if [ -n "${MOS_WAIT_FOR_PORTS}" ]; then
   echoInfo "wait for ports found: ${MOS_WAIT_FOR_PORTS}"
   echo "${LINE}"
   default_timeout=300
-  for wait_for in $(echo "${MOS_WAIT_FOR_PORTS}" | tr ',;' '\n' | awk -F: '{if(NF==2){$0=$0":'${default_timeout}'"}print}' | sort -t: -k3,3n | paste -sd' ' -); do
-    IFS=':' read -r i_host i_port i_timeout <<< "${wait_for}"
-    ./wait-for-it.sh ${i_host}:${i_port} -t ${i_timeout} & waiting_pids+=($!)
+  default_sleep=0
+  waiting_pids=()
+  for wait_for in $(echo "${MOS_WAIT_FOR_PORTS}" | tr ' ,;' '\n' | awk -F: '{if(NF==2){$0=$0":'${default_timeout}':'${default_sleep}'"}else if(NF==3){$0=$0":'${default_sleep}'"}print}' | sort -t: -k3,3n | paste -sd' ' -); do
+    IFS=':' read -r i_host i_port i_timeout i_sleep <<< "${wait_for}"
+    ( wait-for-it "${i_host}:${i_port}" -t "${i_timeout:-${default_timeout}}" && ( ([ "${i_sleep}" -gt 0 ] && echoInfo "sleep ${i_sleep}s after ${i_host}:${i_port}" && sleep "${i_sleep}") || exit 0) ) & waiting_pids+=($!)
   done
-  for waiting_pid in ${waiting_pids[@]}; do
-    wait ${waiting_pid} || exit $?
+  for waiting_pid in "${waiting_pids[@]}"; do
+    wait "${waiting_pid}" || exit $?
   done
 fi
 
 # start all registered processes
-${HOME}/processes.sh --start-all
+processes --start-all

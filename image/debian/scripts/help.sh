@@ -50,7 +50,7 @@ echo -e "
    environment-variables. The environment-variables can be used inside the
    image to easier reference the entry-points.
  ${BLUE}env${TEXT}
-   This is a standard Docker command to display all current defined
+   This is a standard command to display all current defined
    environment-variables.
  ${BLUE}envs${TEXT}
    This is an extended function of ${BLUE}env${TEXT}, to display all available
@@ -59,11 +59,18 @@ echo -e "
    variable they have been replaced by. By default, the value-column is limited
    to 40 characters. With the parameter ${BLUE}--dont-cut-values${TEXT}, values are displayed
    in full length.
+ ${BLUE}examples${TEXT}
+   With this you can discover application-examples provided in the image.
+   If the parameter ${BLUE}--target-dir${CODE}=<DIR>${TEXT} is also specified and the referenced
+   directory is also available as a volume in the container, you can also copy
+   selected files to your host computer. With the additional parameter ${BLUE}--copy-all${TEXT},
+   all examples are copied directly. This command has been implemented in
+   all mosaicgreifswald-images since August 2025.
  ${BLUE}help${TEXT}
    Shows this help. This help has been implemented in all
    mosaicgreifswald-images since 2024.
 
- ${HEADER}Examples:${NC}
+ ${HEADER}Command-Examples:${NC}
  > ${CODE}docker run --rm ${CYAN}mosaicgreifswald/zulujre ${BLUE}envs${DARK_GRAY}
  ${UNDERLINE}VARIABLE-NAME${NC}${DARK_GRAY}                     ${UNDERLINE}CURRENT-VALUE${NC}${DARK_GRAY}                            ${UNDERLINE}DEFAULT-VALUE${NC}${DARK_GRAY}                            ${UNDERLINE}STATE${NC}${DARK_GRAY}
  ENTRY_JAVA_CACERTS                /entrypoint-java-cacerts
@@ -85,14 +92,15 @@ echo -e "
  USER                              mosaic${NC}
 
  > ${CODE}docker run --rm ${CYAN}mosaicgreifswald/wildfly ${BLUE}versions${DARK_GRAY}
-  last updated               : 2025-07-07 13:18:10
+  last updated               : 2025-10-27 11:12:25
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 12.11
-  zulu-jre                   : 21.0.7
-  WildFly                    : 36.0.1.Final
-  MySQL-Connector            : 9.3.0
-  MariaDB-Connector          : 3.5.4
-  EclipseLink                : 4.0.7${NC}
+  Distribution               : Debian GNU/Linux 13.1
+  zulu-jre                   : 21.0.9
+  WildFly                    : 38.0.0.Final
+  MySQL-Connector            : 9.4.0
+  MariaDB-Connector          : 3.5.6
+  PostgreSQL-Connector       : 42.7.8
+  EclipseLink                : 4.0.8${NC}
 
  ${HEADER}Additional help and examples:${NC}${TEXT}
 
@@ -100,16 +108,16 @@ echo -e "
  your own project more quickly. Included are various README.md and lots of
  examples. There are several ways to view these files:
 
- ${HEADER}Explore the files directly in the running container:${NC}
- > ${CODE}docker run --rm -it ${CYAN}<IMAGE>${CODE} examples
+ Explore the files directly in the running container:
+ > ${CODE}docker run --rm -it ${CYAN}<IMAGE> ${BLUE}examples${CODE}
 
- ${HEADER}Explore and copy files to your host system${NC}
- > ${CODE}docker run --rm -v \"your/path:/tmp\" ${CYAN}<IMAGE>${CODE} examples --target-dir=/tmp
+ Explore and copy files to your host system
+ > ${CODE}docker run --rm -v \"your/path:/tmp\" ${CYAN}<IMAGE> ${BLUE}examples${CODE} --target-dir=/tmp
 
- ${HEADER}Copy all files directly to your host system${NC}
- > ${CODE}docker run --rm -v \"your/path:/tmp\" ${CYAN}<IMAGE>${CODE} examples --copy-all --target-dir=/tmp
+ Copy all files directly to your host system
+ > ${CODE}docker run --rm -v \"your/path:/tmp\" ${CYAN}<IMAGE> ${BLUE}examples${CODE} --copy-all --target-dir=/tmp
 
- ${TEXT}License-information
+${HEADER}License-information${NC}${TEXT}
  Copyright (C) 2009 - 2025 Institute for Community Medicine
  University Medicine of Greifswald - mosaic-project@uni-greifswald.de
  GNU Affero General Public License version 3
