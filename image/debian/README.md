@@ -63,19 +63,20 @@ The variable `MOS_EXCLUDE_PROCESSES` does exactly the opposite. It ignores proce
 
 # "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/debian versions
-  last updated               : 2025-10-28 09:48:16
+  last updated               : 2026-01-21 15:54:53
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 13.1
+  Distribution               : Debian GNU/Linux 13.3 (trixie)
   
 # "entrypoints" lists all registered entrypoints.
 > docker run --rm mosaicgreifswald/debian entrypoints
   ENTRY_LOGS                 : /entrypoint-logs
 ```
 
+
 ## Current Software-Versions on this Image
 | Date               | Tags                                                                                                                                                                                                                                                                                                                                                        | Changes                                                                    |
 |--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| 2025-10-29         | [13.1](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13.1), [13](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13), [latest](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=latest) ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/ef640718402791699fb958f8c3150576bc0d69f7/image/debian/Dockerfile.debian)) | **Debian** 13.1 "trixie"                                                   |
+| 2025-10-29         | [13.1](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13.1), [13](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13), [latest](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=latest) ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/edf0ca327bc7a7c9c6c10f78b37eb2ffd0e8aad3/image/debian/Dockerfile.debian)) | **Debian** 13.1 "trixie"                                                   |
 | 2025-07-22         | [12.11](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=12.11), [12](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=12) ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/29b5fc38ccd6e79c594cd50a6ea9afdafe4d777c/image/debian/Dockerfile.debian))                                                                            | added script to explore and copy additional files from image to host       |
 | 2025-07-07<br><br> | 12.11 ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/a370600c41ce8b19f2b0ed55be81a6aa3000cdf2/image/debian/Dockerfile.debian))<br><br>                                                                                                                                                                                                             | **Debian** 12.11 "bookworm"<br>added ENV-Variable MOS_WAIT_FOR_PORTS       |
 | 2025-06-13         | 12.11                                                                                                                                                                                                                                                                                                                                                       | **Debian** 12.11 "bookworm"                                                |
