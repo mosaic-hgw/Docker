@@ -3,7 +3,7 @@ FROM debian:stable-slim
 # ###license-information-start###
 # The MOSAIC-Project - Debian Stable
 # __
-# Copyright (C) 2009 - 2025 Institute for Community Medicine
+# Copyright (C) 2009 - 2026 Institute for Community Medicine
 # University Medicine of Greifswald - mosaic-project@uni-greifswald.de
 # __
 # This program is free software: you can redistribute it and/or modify
@@ -21,7 +21,7 @@ FROM debian:stable-slim
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20251027"
+ARG DATE_YMD="20260126"
 ARG WAIT_FOR_IT_DOWNLOAD_URL="https://raw.githubusercontent.com/vishnubob/wait-for-it/ed77b63706ea721766a62ff22d3a251d8b4a6a30/wait-for-it.sh"
 ARG WAIT_FOR_IT_SHA256="2ea7475e07674e4f6c1093b4ad6b0d8cbbc6f9c65c73902fb70861aa66a6fbc0"
 
@@ -79,7 +79,7 @@ RUN cd ${HOME} && \
     echo "> 7. register versions and entrypoints" && \
     /bin/bash ${HOME}/register.sh \
       --add-version="Architecture:$(uname -m)" \
-      --add-version='Distribution:$(cat /etc/os-release | grep -E "^NAME" | cut -d"\"" -f2 ) $(cat /etc/debian_version)' \
+      --add-version='Distribution:$(. /etc/os-release && echo "$NAME $DEBIAN_VERSION_FULL ($VERSION_CODENAME)")' \
       --add-entrypoint="ENTRY_LOGS:${ENTRY_LOGS}" && \
     \
     echo "> 8. cleanup" && \
@@ -87,7 +87,7 @@ RUN cd ${HOME} && \
     apt-get autoclean && \
     apt-get autoremove -y && \
     chown ${USER}:${USER} -R ${HOME} ${MOS_READY_PATH} ${ENTRY_LOGS} ${ENTRY_USAGE} && \
-    chmod 777 ${HOME} && chmod 444 -R ${HOME}/*.txt && \
+    chmod 777 -R ${HOME} && chmod 444 -R ${HOME}/*.txt && \
     rm -rf install.log ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
 
 WORKDIR ${HOME}

@@ -155,7 +155,7 @@ start_all_processes() {
     else
       start_process "${name}"
       exit_code=$?
-      if [ ${exit_code} -gt 0 ] ; then
+      if [ ${exit_code} -gt 0 ] && [ ! "${exit_code}" = "${EXITCODE_TO_IGNORE_RESTART}" ] ; then
         echoErr "cannot start process ${name}. abort all processes."
         stop_all_processes
         return ${exit_code}
