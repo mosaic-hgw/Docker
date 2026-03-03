@@ -21,7 +21,7 @@ FROM debian:stable-slim
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20260126"
+ARG DATE_YMD="20260204"
 ARG WAIT_FOR_IT_DOWNLOAD_URL="https://raw.githubusercontent.com/vishnubob/wait-for-it/ed77b63706ea721766a62ff22d3a251d8b4a6a30/wait-for-it.sh"
 ARG WAIT_FOR_IT_SHA256="2ea7475e07674e4f6c1093b4ad6b0d8cbbc6f9c65c73902fb70861aa66a6fbc0"
 
@@ -66,7 +66,6 @@ RUN cd ${HOME} && \
     (sha256sum wait-for-it.sh | grep -q ${WAIT_FOR_IT_SHA256} > /dev/null || (>&2 echo "sha256sum failed $(sha256sum wait-for-it.sh)" && exit 1)) && \
     \
     echo "> 6. register bash-scripts" && \
-    ln -s ${HOME}/commons.sh ${HOME}/colors.sh && \
     ln -s ${HOME}/register.sh /usr/bin/register && \
     ln -s ${HOME}/versions.sh /usr/bin/versions && \
     ln -s ${HOME}/entrypoints.sh /usr/bin/entrypoints && \
@@ -86,7 +85,7 @@ RUN cd ${HOME} && \
     apt-get clean && \
     apt-get autoclean && \
     apt-get autoremove -y && \
-    chown ${USER}:${USER} -R ${HOME} ${MOS_READY_PATH} ${ENTRY_LOGS} ${ENTRY_USAGE} && \
+    chown ${USER}:${USER} -R ${HOME} ${MOS_READY_PATH} ${MOS_TEMP_PATH} ${ENTRY_LOGS} ${ENTRY_USAGE} && \
     chmod 777 -R ${HOME} && chmod 444 -R ${HOME}/*.txt && \
     rm -rf install.log ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
 

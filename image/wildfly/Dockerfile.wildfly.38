@@ -24,25 +24,25 @@ FROM ${TAG} AS build
 # variables
 ARG MAVEN_REPOSITORY="https://repo1.maven.org/maven2"
 
-ARG WILDFLY_VERSION="38.0.0.Final"
+ARG WILDFLY_VERSION="38.0.1.Final"
 ARG WILDFLY_FILE="wildfly-${WILDFLY_VERSION}.tar.gz"
 ARG WILDFLY_DOWNLOAD_URL="https://github.com/wildfly/wildfly/releases/download/${WILDFLY_VERSION}/${WILDFLY_FILE}"
-ARG WILDFLY_SHA256="f6dddf4338a6cf872e057dccefbf88285d34a090262eb9b664ce79b13a56c2d0"
+ARG WILDFLY_SHA256="35bac69f742054734cc05263642adfc4e2073211ef635e9e8c812c6de6c3a907"
 
-ARG MYSQL_CONNECTOR_VERSION="9.5.0"
+ARG MYSQL_CONNECTOR_VERSION="9.6.0"
 ARG MYSQL_CONNECTOR_FILE="mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.jar"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/com/mysql/mysql-connector-j/${MYSQL_CONNECTOR_VERSION}/${MYSQL_CONNECTOR_FILE}"
-ARG MYSQL_CONNECTOR_SHA256="f2ca3dfaf00d4aa311470db7ea3051962944ba0cb60005a2f75467549c39f425"
+ARG MYSQL_CONNECTOR_SHA256="66df1d453789dc8cb759a7dc17f58646893bf28483f262328650f170472a6ead"
 
 ARG MARIA_CONNECTOR_VERSION="3.5.7"
 ARG MARIA_CONNECTOR_FILE="mariadb-java-client-${MARIA_CONNECTOR_VERSION}.jar"
 ARG MARIA_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/mariadb/jdbc/mariadb-java-client/${MARIA_CONNECTOR_VERSION}/${MARIA_CONNECTOR_FILE}"
 ARG MARIA_CONNECTOR_SHA256="07bb1229dc184f3313a5aef4c5a6b3207c8dbaa09db4a26814c936f004b4c526"
 
-ARG PSQL_CONNECTOR_VERSION="42.7.9"
+ARG PSQL_CONNECTOR_VERSION="42.7.10"
 ARG PSQL_CONNECTOR_FILE="postgresql-${PSQL_CONNECTOR_VERSION}.jar"
 ARG PSQL_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/postgresql/postgresql/${PSQL_CONNECTOR_VERSION}/${PSQL_CONNECTOR_FILE}"
-ARG PSQL_CONNECTOR_SHA256="88f1fc3992e80ec3b048f798030e9a014aa4783c40afb56d3e7a87ee0adf166f"
+ARG PSQL_CONNECTOR_SHA256="cab1cd67cfa25c25de4348e532298028288a877ba01c77d1619fe45416193387"
 
 ARG ECLIPSELINK_VERSION="4.0.9"
 ARG ECLIPSELINK_FILE="eclipselink-${ECLIPSELINK_VERSION}.jar"
@@ -63,37 +63,37 @@ USER root
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${MOS_TEMP_PATH}"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo -n "> 1. get mysql-connector " && \
-	((test -f ${MYSQL_CONNECTOR_FILE} && echo e) || (echo d && curl -LfsSO ${MYSQL_CONNECTOR_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${MYSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1)) && \
+	((test -f ${MYSQL_CONNECTOR_FILE} && echo e) || (echo d && curl -LfsSO ${MYSQL_CONNECTOR_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${MYSQL_CONNECTOR_DOWNLOAD_URL} \n" && exit 1)) && \
 	sha256sum ${MYSQL_CONNECTOR_FILE} | grep -q ${MYSQL_CONNECTOR_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum ${MYSQL_CONNECTOR_FILE})" && exit 1)
 
 RUN cd ${MOS_TEMP_PATH} && \
     echo -n "> 2. get mariadb-connector " && \
-	((test -f ${MARIA_CONNECTOR_FILE} && echo e) || (echo d && curl -LfsSO ${MARIA_CONNECTOR_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${MARIA_CONNECTOR_DOWNLOAD_URL}\n" && exit 1)) && \
+	((test -f ${MARIA_CONNECTOR_FILE} && echo e) || (echo d && curl -LfsSO ${MARIA_CONNECTOR_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${MARIA_CONNECTOR_DOWNLOAD_URL} \n" && exit 1)) && \
 	sha256sum ${MARIA_CONNECTOR_FILE} | grep -q ${MARIA_CONNECTOR_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum ${MARIA_CONNECTOR_FILE})" && exit 1)
 
 RUN cd ${MOS_TEMP_PATH} && \
     echo -n "> 3. get postgresql-connector " && \
-    ((test -f ${PSQL_CONNECTOR_FILE} && echo e) || (echo d && curl -LfsSO ${PSQL_CONNECTOR_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${PSQL_CONNECTOR_DOWNLOAD_URL}\n" && exit 1)) && \
+    ((test -f ${PSQL_CONNECTOR_FILE} && echo e) || (echo d && curl -LfsSO ${PSQL_CONNECTOR_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${PSQL_CONNECTOR_DOWNLOAD_URL} \n" && exit 1)) && \
 	sha256sum ${PSQL_CONNECTOR_FILE} | grep -q ${PSQL_CONNECTOR_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum ${PSQL_CONNECTOR_FILE})" && exit 1)
 
 RUN cd ${MOS_TEMP_PATH} && \
     echo -n "> 4. get eclipselink " && \
-    ((test -f ${ECLIPSELINK_FILE} && echo e) || (echo d && curl -LfsSO ${ECLIPSELINK_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${ECLIPSELINK_DOWNLOAD_URL}\n" && exit 1)) && \
+    ((test -f ${ECLIPSELINK_FILE} && echo e) || (echo d && curl -LfsSO ${ECLIPSELINK_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${ECLIPSELINK_DOWNLOAD_URL} \n" && exit 1)) && \
 	sha256sum ${ECLIPSELINK_FILE} | grep -q ${ECLIPSELINK_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${ECLIPSELINK_FILE})" && exit 1)
 
 RUN cd ${MOS_TEMP_PATH} && \
     echo -n "> 5. get eclipse.persistence.json " && \
-    ((test -f ${ECLIPSEJSON_FILE} && echo e) || (echo d && curl -LfsSO ${ECLIPSEJSON_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${ECLIPSEJSON_DOWNLOAD_URL}\n" && exit 1)) && \
+    ((test -f ${ECLIPSEJSON_FILE} && echo e) || (echo d && curl -LfsSO ${ECLIPSEJSON_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${ECLIPSEJSON_DOWNLOAD_URL} \n" && exit 1)) && \
 	sha256sum ${ECLIPSEJSON_FILE} | grep -q ${ECLIPSEJSON_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${ECLIPSEJSON_FILE})" && exit 1)
 
 RUN cd ${MOS_TEMP_PATH} && \
     echo -n "> 6. get eclipse.persistence.core " && \
-	((test -f ${ECLIPSECORE_FILE} && echo e) || (echo d && curl -LfsSO ${ECLIPSECORE_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${ECLIPSECORE_DOWNLOAD_URL}\n" && exit 1)) && \
+	((test -f ${ECLIPSECORE_FILE} && echo e) || (echo d && curl -LfsSO ${ECLIPSECORE_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${ECLIPSECORE_DOWNLOAD_URL} \n" && exit 1)) && \
 	sha256sum ${ECLIPSECORE_FILE} | grep -q ${ECLIPSECORE_SHA256} || (>&2 echo "sha256sum failed $(sha256sum ${ECLIPSECORE_FILE})" && exit 1)
 
 RUN cd ${MOS_TEMP_PATH} && \
     echo -n "> 7. install wildfly " && \
-	((test -f ${WILDFLY_FILE} && echo e) || (echo d && curl -LfsSO ${WILDFLY_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${WILDFLY_DOWNLOAD_URL}\n" && exit 1)) && \
+	((test -f ${WILDFLY_FILE} && echo e) || (echo d && curl -LfsSO ${WILDFLY_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${WILDFLY_DOWNLOAD_URL} \n" && exit 1)) && \
 	(sha256sum ${WILDFLY_FILE} | grep -q ${WILDFLY_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum ${WILDFLY_FILE})" && exit 1)) && \
 	tar xf ${WILDFLY_FILE} && \
 	mv wildfly-${WILDFLY_VERSION} ${WILDFLY_HOME} && \
@@ -104,7 +104,7 @@ RUN cd ${MOS_TEMP_PATH} && \
 RUN echo "> 8. start wildfly" && \
     (${WILDFLY_HOME}/bin/standalone.sh &) && \
     START=$(date +%s) && \
-    TIMEOUT=90 && \
+    TIMEOUT=120 && \
     (until `/bin/bash ${WILDFLY_HOME}/wildfly_started.sh`;do sleep 1;SEC=$(($(date +%s)-START));if [ ${SEC} -ge $TIMEOUT ];then >&2 echo "starting-timeout (TIMEOUT=${TIMEOUT})";exit 1;fi;done) && \
     echo "> 9. prepare wildfly" && \
     ($JBOSS_CLI --connect --commands=" \
@@ -120,7 +120,7 @@ RUN echo "> 8. start wildfly" && \
         module remove --name=system.layers.base.org.eclipse.persistence, \
         /extension=org.wildfly.extension.microprofile.health-smallrye:add, \
         /subsystem=microprofile-health-smallrye:add, \
-        /subsystem=undertow/server=default-server/ajp-listener=myListener:add(socket-binding=ajp, scheme=http, enabled=true), \
+        /subsystem=undertow/server=default-server/ajp-listener=myListener:add(socket-binding=ajp, scheme=http), \
         /subsystem=elytron/file-audit-log=local-audit:remove(), \
         /subsystem=logging/pattern-formatter=DATE_DETAILED:add(pattern=\"%d %-5p %-4L [%c] (%t) %s%E%n\"), \
         /subsystem=logging/pattern-formatter=DATE_COMPACT:add(pattern=\"%d %-5.5p %-4.4L %-40.40c{2.} | %m%n\"), \
@@ -130,8 +130,7 @@ RUN echo "> 8. start wildfly" && \
     ($JBOSS_CLI --connect --commands=" \
         /subsystem=deployment-scanner/scanner=default:write-attribute(name=scan-enabled,value=false), \
         /subsystem=deployment-scanner/scanner=entrypoint:add(scan-interval=5000,path=${ENTRY_WILDFLY_DEPLOYS}), \
-        :shutdown" || exit 1) && \
-    echo -n "true" > ${MOS_READY_PATH}/markerfiles_mode
+        :shutdown" || exit 1)
 
 RUN echo "> 10. register versions" && \
 	register \
@@ -149,7 +148,7 @@ RUN echo "> 11. cleanup" && \
 ###########
 FROM ${TAG}
 
-ARG DATE_YMD="20260109"
+ARG DATE_YMD="20260212"
 ENV WILDFLY_HOME="${HOME}/wildfly" \
     JBOSS_CLI="${HOME}/wildfly/bin/jboss-cli.sh" \
     LAUNCH_JBOSS_IN_BACKGROUND="true" \
@@ -193,6 +192,7 @@ RUN cd ${MOS_TEMP_PATH} && \
     mkdir -m 777 ${ENTRY_WILDFLY_CLI} ${ENTRY_WILDFLY_DEPLOYS} ${ENTRY_LOGS}/wildfly && \
     chown ${USER}:${USER} -R ${ENTRY_WILDFLY_CLI} ${ENTRY_WILDFLY_DEPLOYS} ${ENTRY_LOGS}/wildfly && \
     ln -s ${ENTRY_LOGS}/wildfly ${ENTRY_WILDFLY_LOGS} && \
+    echo -n "true" > ${MOS_READY_PATH}/markerfiles_mode && \
     \
     echo "> 3. register wildfly" && \
     register \

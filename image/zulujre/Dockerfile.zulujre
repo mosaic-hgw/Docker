@@ -4,7 +4,7 @@ FROM ${TAG}
 # ###license-information-start###
 # The MOSAIC-Project
 # __
-# Copyright (C) 2009 - 2025 Institute for Community Medicine
+# Copyright (C) 2009 - 2026 Institute for Community Medicine
 # University Medicine of Greifswald - mosaic-project@uni-greifswald.de
 # __
 # This program is free software: you can redistribute it and/or modify
@@ -22,11 +22,12 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20250120"
+ARG DATE_YMD="20260204"
 ARG JAVA_VERSION="21"
 ARG JAVA_DOWNLOAD_URL="https://cdn.azul.com/zulu/bin/"
 ENV JAVA_HOME="/usr/lib/jvm/zulu" \
-    ENTRY_JAVA_CACERTS="/entrypoint-java-cacerts"
+    ENTRY_JAVA_CACERTS="/entrypoint-java-cacerts" \
+    ENTRY_JAVA_TRUSTS="/entrypoint-java-trusts"
 
 # annotations
 LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
@@ -38,6 +39,7 @@ LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
 
 # create folders and permissions
 USER root
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${HOME}"]
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}/"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
@@ -55,26 +57,31 @@ RUN cd ${MOS_TEMP_PATH} && \
     mv ${JAVA_HOME}/../zre-${JAVA_VERSION}-${ARCH} ${JAVA_HOME}${JAVA_VERSION} && \
     for EXE_PATH in $(find "${JAVA_HOME}${JAVA_VERSION}/bin/" -type f -executable); do \
       if [ -f ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) ]; then \
-        sed -ie "s-*) .*-*) ${EXE_PATH} \"\$@\" ;;-;/*)/i${JAVA_VERSION}) ${EXE_PATH} \"\$@\" ;;" ${JAVA_HOME}/bin/$(basename ${EXE_PATH}); \
+        sed -ie "s-x) .*-x) exec ${EXE_PATH} \"\$@\" ;;-;s-*) .*-*) echo \"java \${JAVA_VERSION} not installed\"; exec ${EXE_PATH} \"\$@\" ;;-;/x)/ix${JAVA_VERSION}) exec ${EXE_PATH} \"\$@\" ;;" ${JAVA_HOME}/bin/$(basename ${EXE_PATH}); \
       else \
-        echo '#!/bin/sh\ncase "${JAVA_VERSION}" in\n'${JAVA_VERSION}') '${EXE_PATH}' "$@" ;;\n*) '${EXE_PATH}' "$@" ;;\nesac' > ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) && \
+        echo '#!/bin/sh\ncase "x${JAVA_VERSION}" in\nx'${JAVA_VERSION}') exec '${EXE_PATH}' "$@" ;;\nx) exec '${EXE_PATH}' "$@" ;;\n*) echo "java ${JAVA_VERSION} not installed"; exec '${EXE_PATH}' "$@" ;;\nesac' > ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) && \
         chown ${USER}:${USER} -R ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) && \
         chmod 555 ${JAVA_HOME}/bin/$(basename ${EXE_PATH}); \
       fi && \
       ln -sf ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) /usr/bin/$(basename ${EXE_PATH}); \
     done && \
-    register --add-version="zulu-jre:\$(${JAVA_HOME}${JAVA_VERSION}/bin/java -version 2>&1 | head -n1 | sed -r 's/^.+\"(.+)\".+$/\1/' | cat) \$([ \"\$(grep -c \"\${JAVA_HOME}\" \${JAVA_HOME}/bin/java)\" -gt 2 ] && [ \"${JAVA_VERSION}\" = \"\${JAVA_VERSION:-\$(cat ${HOME}/default-java-version)}\" ] && echo \"(current)\")" && \
-    if [ -f "${HOME}/default-java-version" ]; then ENTRY_JAVA_CACERTS="${JAVA_HOME}$(cat ${HOME}/default-java-version)/lib/security/cacerts"; \
-    else register --add-entrypoint="ENTRY_JAVA_CACERTS:${ENTRY_JAVA_CACERTS}"; fi && \
-    echo -n "${JAVA_VERSION}" > ${HOME}/default-java-version && \
+    register --add-version="zulu-jre:\$(${JAVA_HOME}${JAVA_VERSION}/bin/java -version 2>&1 | head -n1 | sed -r 's/^.+\"(.+)\".+$/\1/' | cat) \$([ \"\$(grep -c \"\${JAVA_HOME}\" \${JAVA_HOME}/bin/java)\" -gt 2 ] && [ \"${JAVA_VERSION}\" = \"\${JAVA_VERSION:-\$(grep '*)' \"\${JAVA_HOME}/bin/java\"|sed -n 's/.*zulu\([0-9]\+\).*/\1/p')}\" ] && echo \"(current)\")" && \
+    if [ ! -e "${ENTRY_JAVA_CACERTS}" ]; then \
+		mkdir -m 777 ${ENTRY_JAVA_TRUSTS} && \
+    	mv ${JAVA_HOME}${JAVA_VERSION}/lib/security/cacerts ${ENTRY_JAVA_CACERTS} && \
+    	register \
+			--add-entrypoint="ENTRY_JAVA_CACERTS:${ENTRY_JAVA_CACERTS}" \
+			--add-entrypoint="ENTRY_JAVA_TRUSTS:${ENTRY_JAVA_TRUSTS}" \
+			--add-process="jdk-trusts:5:action:${HOME}/import_to_cacerts.sh:"; \
+    fi && \
+  	ln -sf ${ENTRY_JAVA_CACERTS} ${JAVA_HOME}${JAVA_VERSION}/lib/security/cacerts && \
     \
     echo "> 4. cleanup" && \
     apt-get clean && \
     apt-get autoclean && \
     apt-get autoremove -y && \
-    chmod 666 ${HOME}/default-java-version && \
-    chown ${USER}:${USER} -R ${ENTRY_USAGE} && \
-    ln -sf ${JAVA_HOME}${JAVA_VERSION}/lib/security/cacerts ${ENTRY_JAVA_CACERTS} && \
+    chmod 777 -R ${HOME} ${ENTRY_JAVA_CACERTS} && \
+    chown ${USER}:${USER} -R ${ENTRY_USAGE} ${JAVA_HOME} ${ENTRY_JAVA_CACERTS} ${ENTRY_JAVA_TRUSTS} && \
     rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
 
 USER ${USER}

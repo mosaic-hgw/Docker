@@ -1,13 +1,13 @@
 #!/bin/bash
 
 #>available-env< TZ Europe/Berlin
-#>available-env< MOS_WAIT_FOR_PORTS host:port[:timeout]
+#>available-env< MOS_WAIT_FOR_PORTS host:port[:timeout[:sleep]]
 
 # get commons
 source ${HOME}/commons.sh
 
 # show versions
-echo -e "${LINE}\n\n  https://hub.docker.com/repository/docker/mosaicgreifswald\n\n${LINE}\n\n$(versions)\n\n${LINE}"
+echo -e "${LINE}\n\n  https://hub.docker.com/search?q=mosaicgreifswald\n\n${LINE}\n\n$(versions)\n\n${LINE}"
 
 # test entrypoints write permissions
 echoInfo "test write-permission in entrypoints"
@@ -54,4 +54,4 @@ if [ -n "${MOS_WAIT_FOR_PORTS}" ]; then
 fi
 
 # start all registered processes
-processes --start-all
+exec processes --start-all

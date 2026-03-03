@@ -5,11 +5,13 @@ source ${HOME}/commons.sh
 
 echo "${LINE}"
 echo
-echo "  This is a Docker image for the Java application server WildFly. The"
-echo "  image is based on slim debian-image and prepared for the tools of the"
-echo "  university medicine greifswald (but can also be used for other similar"
-echo "  projects)."
+echo '  This is a Docker image for the Java application server WildFly.'
+echo '  The image is based on slim debian-image and prepared for the tools'
+echo '  of the university medicine greifswald (but can also be used for'
+echo '  other similar projects).'
 echo
+echo "${LINE}"
+java -version
 
 ${WILDFLY_HOME}/create_wildfly_admin.sh
 
@@ -70,6 +72,7 @@ elif [ ${EXIT_CODE} -ne 0 ]; then
 fi
 
 # wait for ports
+#>available-env< WF_WAIT_FOR_PORTS host:port[:timeout[:sleep]]
 if [ -n "${WF_WAIT_FOR_PORTS}" ]; then
   echoInfo "wait for ports found: ${WF_WAIT_FOR_PORTS}"
   echo "${LINE}"
@@ -107,6 +110,4 @@ fi
 rm -f ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/current/*
 
 WF_OPTS="-Djboss.server.log.dir=${ENTRY_LOGS}/wildfly $([[ ${WF_DEBUG,,} =~ ^(true|yes|on|1)$ ]] && echo "--debug")"
-bash ${WILDFLY_HOME}/bin/standalone.sh -b 0.0.0.0 -bmanagement 0.0.0.0 ${WF_OPTS}
-
-echoWarn "WildFly-Server is stopped"
+exec ${WILDFLY_HOME}/bin/standalone.sh -b 0.0.0.0 -bmanagement 0.0.0.0 ${WF_OPTS}

@@ -118,7 +118,7 @@ echo -e "
  > ${CODE}docker run --rm -v \"your/path:/tmp\" ${CYAN}<IMAGE> ${BLUE}examples${CODE} --copy-all --target-dir=/tmp
 
 ${HEADER}License-information${NC}${TEXT}
- Copyright (C) 2009 - 2025 Institute for Community Medicine
+ Copyright (C) 2009 - 2026 Institute for Community Medicine
  University Medicine of Greifswald - mosaic-project@uni-greifswald.de
  GNU Affero General Public License version 3
 "

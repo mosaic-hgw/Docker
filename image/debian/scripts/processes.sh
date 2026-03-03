@@ -9,20 +9,22 @@
 source "${HOME}/commons.sh"
 
 # VARIABLES ############################################################################################################
-VERSION_NUMBER='2025.1.0'
-VERSION="\n Version ${VERSION_NUMBER} from 2025-03-25\n Maintained by Ronny Schuldt\n"
+VERSION_NUMBER='2026.1.0'
+VERSION="\n Version ${VERSION_NUMBER} from 2026-02-04\n Maintained by Ronny Schuldt\n"
 PROCESSES_FILE="${HOME}/mosaic_processes"
+CONTROL_FIFO="${HOME}/mosaic_process_control"
+# COLS format: key:width:label
 COLS=( \
   "name:15:Name" \
   "order:5:Order" \
   "type:7:Type" \
   "run_script:55:Run-Script" \
   "started_script:50:Started-Script" \
-  "status:10:Status" \
+  "status:13:Status" \
   "pid:6:PID" \
-  "ts_started:13:TS-Started" \
-  "ts_ready:13:TS-Ready" \
-  "ts_stopped:13:TS-Stopped" \
+  "ts_started:15:TS-Started" \
+  "ts_ready:15:TS-Ready" \
+  "ts_stopped:15:TS-Stopped" \
   "count_started:13:Count-Started" \
   "exit_code:9:Exit-Code" \
 )
@@ -42,14 +44,11 @@ add_process() {
 
 get_process() {
   local name="${1}"
-  local key_value
-  local i_key
-  local i_width
-  local i_label
+  local key_value i_key i_width i_label
   local pos=1
   local line
 
-  line="$(sed '1d;/^'${name}' /!d' "${PROCESSES_FILE}")"
+  line="$(sed '1d' "${PROCESSES_FILE}" | awk -v n="$name" '$1==n {print; exit}')"
   [ -z "${line}" ] && return
   for key_value in "${COLS[@]}"; do
     IFS=':' read -r i_key i_width i_label <<< "${key_value}"
@@ -63,21 +62,41 @@ get_process_names() {
 }
 
 list_all_processes() {
-  cat "${PROCESSES_FILE}"
+  local keys widths kv k w
+  for kv in "${COLS[@]}"; do IFS=':' read -r k w _ <<<"$kv"; keys+="$k,"; widths+="$w,"; done
+  keys=${keys%,}; widths=${widths%,}
+
+  awk -v K="$keys" -v W="$widths" '
+    BEGIN{
+      n = split(K, key, ","); split(W, w, ",");
+      pos[1]=1; for(i=2;i<=n;i++) pos[i]=pos[i-1]+w[i-1]+1
+    }
+    NR==1 { print; next }
+    {
+      for(i=1;i<=n;i++){
+        s = substr($0, pos[i], w[i]); gsub(/^[ \t]+|[ \t]+$/,"",s)
+        if (s=="" || s ~ /[^0-9]/) { out[i]=s }
+        else if (key[i]=="ts_started"||key[i]=="ts_ready"||key[i]=="ts_stopped") {
+          t = int(s/1000); now = systime()
+          if (strftime("%Y", now) == strftime("%Y", t)) {
+            if (strftime("%j", now) == strftime("%j", t)) out[i] = strftime("%H:%M:%S", t)
+            else out[i] = strftime("%d-%b %H:%M:%S", t)
+          } else out[i] = strftime("%d-%b-%Y", t)
+        } else out[i]=s
+      }
+      line = ""
+      for(i=1;i<=n;i++) line = line sprintf("%-" w[i] "s" (i==n?"":" "), out[i])
+      print line
+    }
+  ' "${PROCESSES_FILE}"
 }
 
 store_process() {
-  local key_value
-  local key_value2
-  local i_key
-  local i_width
-  local i_label
-  local i_value
-  local name
-  local key
-  local value
-  local widths=""
-  local values=""
+  local key_value key_value2
+  local i_key i_width i_label i_value
+  local name key value
+  local widths='' values=''
+  local old_line new_line
 
   for key_value in "$@"; do
     IFS=':' read -r i_key i_value <<< "${key_value}"
@@ -87,8 +106,10 @@ store_process() {
     fi
   done
 
-  old_line="$(get_process "${name}")"
+  # create lock
+  exec 200<>"${PROCESSES_FILE}"; flock -x 200
 
+  old_line="$(get_process "${name}")"
   for key_value in "${COLS[@]}"; do
     IFS=':' read -r key i_width i_label <<< "${key_value}"
     widths+="%-${i_width}s "
@@ -104,26 +125,53 @@ store_process() {
     values+="'${value}' "
   done
 
-  if [ -z "${old_line}" ]; then
-    eval "printf '${widths}\n' ${values}" >> "${PROCESSES_FILE}"
-  else
-    sed -i "1!{/^${name} / s:.*:$(eval "printf '${widths}\n' ${values}"):}" "${PROCESSES_FILE}"
+  new_line="$(eval "printf '${widths}\n' ${values}")"
+  [[ ${MOS_DEBUG,,} =~ ^(true|yes|on|1)$ ]] && echoDeb "${new_line}"
+  if [ -z "${old_line}" ]; then echo "${new_line}" >> "${PROCESSES_FILE}"
+  else sed -i "1!{/^${name} / s:.*:${new_line}:}" "${PROCESSES_FILE}"
   fi
+
+  # release lock
+  flock -u 200; exec 200>&-
 }
 
 create_process_file() {
   local key_value
-  local i_key
-  local i_width
-  local i_label
-  local widths=""
-  local labels=""
+  local i_key i_width i_label
+  local widths='' labels=''
+
   for key_value in "${COLS[@]}"; do
     IFS=':' read -r i_key i_width i_label <<< "${key_value}"
     widths+="%-${i_width}s "
     labels+="'${i_label}' "
   done
   eval "printf '${widths}\n' ${labels} > '${PROCESSES_FILE}'"
+}
+
+send_control_command() {
+  local cmd="$*"
+
+  # use timeout to avoid permanent block if no reader
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 1 bash -c "printf '%s\n' \"${cmd}\" > \"${CONTROL_FIFO}\"" || echoErr 'could not send cmd'
+  else
+    # fallback: background the writer (non-blocking but detached)
+    ( printf '%s\n' "${cmd}" > "${CONTROL_FIFO}" ) & disown
+  fi
+}
+
+handle_control_command() {
+  local cmd="${1%% *}"
+  local name="${1#* }"
+
+  case "${cmd}" in
+    start_process) start_process "${name}" ;;
+    stop_process) stop_process "${name}" ;;
+    restart_process) restart_process "${name}" ;;
+    stop_all_processes) stop_all_processes ;;
+    restart_all_processes) restart_all_processes ;;
+    *) echoErr "unknown control command: ${line}" ;;
+  esac
 }
 
 start_all_processes() {
@@ -133,15 +181,28 @@ start_all_processes() {
   local status
   local started=0
   local count
-  local process_bilance=""
+  local process_bilance=''
+  local control_line
+  local exit_code
+
+  if [ ! -p "${CONTROL_FIFO}" ]; then
+    rm -f "${CONTROL_FIFO}"
+    mkfifo "${CONTROL_FIFO}"
+    chmod 777 "${CONTROL_FIFO}"
+  fi
 
   # start all processes
   names="$(awk 'NR > 1 {print $1" "$2}' "${PROCESSES_FILE}" | sort -k2,2n | cut -d ' ' -f 1)"
+  for name in ${names}; do
+    store_process "name:${name}" "pid:" "exit_code:" "status:pending"
+  done
+
   count=$(echo "${names}" | wc -w)
   for name in ${names}; do
     if ! check_running_processes; then
       echoErr "one service is finished. abort all start processes."
       stop_all_processes
+      rm -f "${CONTROL_FIFO}"
       return 1
     fi
 
@@ -158,6 +219,7 @@ start_all_processes() {
       if [ ${exit_code} -gt 0 ] && [ ! "${exit_code}" = "${EXITCODE_TO_IGNORE_RESTART}" ] ; then
         echoErr "cannot start process ${name}. abort all processes."
         stop_all_processes
+        rm -f "${CONTROL_FIFO}"
         return ${exit_code}
       fi
       started=$((started+1))
@@ -177,8 +239,17 @@ start_all_processes() {
     echoWarn "shutdown all services in ${MOS_SHUTDOWN_DELAY}s"
   fi
 
+  # open fifo
+  exec 3<>"$CONTROL_FIFO" || { echoErr "can not open FIFO"; exit 1; }
+  trap 'exec 3<&-; exec 3>&-; rm -f "${CONTROL_FIFO}"; exit' INT TERM EXIT
+
   # monitoring processes
   while true; do
+
+    #if read -t 0.1 -r control_line < "${CONTROL_FIFO}"; then
+    if read -t 0.1 -u 3 -r control_line; then
+      handle_control_command "${control_line}"
+    fi
 
     if [ -n "${MOS_SHUTDOWN_DELAY}" ] && [ "${SECONDS}" -ge "${MOS_SHUTDOWN_DELAY}" ]; then
       echoWarn "shutdown all services because MOS_SHUTDOWN_DELAY is set"
@@ -196,9 +267,7 @@ start_all_processes() {
         ;;
       service)
         check_running_processes true
-        if [ "$(count_pids)" -eq 0 ]; then
-          break
-        fi
+        [ "$(count_pids)" -eq 0 ] && break
         ;;
       cascade)
         if ! check_running_processes; then
@@ -219,6 +288,7 @@ start_all_processes() {
     esac
     sleep 5
   done
+  rm -f "${CONTROL_FIFO}"
 
   return ${exit_code}
 }
@@ -226,13 +296,8 @@ start_all_processes() {
 start_process() {
   local name="${1}"
   local key_value
-  local i_key
-  local i_value
-  local type
-  local run_script
-  local started_script
-  local pid
-  local count_started
+  local i_key i_value
+  local type run_script started_script pid count_started
   local exit_code=0
 
   for key_value in $(get_process "${name}"); do
@@ -254,34 +319,41 @@ start_process() {
   case "${type,,}" in
     action)
       echoInfo "start action ${name}"
-      echoDeb "${run_script} &"
-      bash "${run_script}" &
-      pid=$!
-      store_process "name:${name}" "pid:${pid}" "ts_started:$(date +%s%3N)" "count_started:$((count_started+1))" "status:started" &
-      wait ${pid}
+      echoDeb "${run_script}"
+      store_process "name:${name}" "pid:${pid}" "ts_started:$(date +%s%3N)" "count_started:$((count_started+1))" "status:started" "exit_code:"
+      bash "${run_script}"
       exit_code=$?
-      store_process "name:${name}" "pid:" "ts_stopped:$(date +%s%3N)" "exit_code:${exit_code}" "status:stopped"
+      store_process "name:${name}" "pid:" "ts_stopped:$(date +%s%3N)" "status:stopped" "exit_code:${exit_code}" &
       ;;
     service)
-      if [ "x${started_script}" != "x" ]; then
-        echoInfo "start service ${name} and wait for running with ${started_script}"
-        echoDeb "${run_script} &"
-        bash "${run_script}" &
-        pid=$!
-        store_process "name:${name}" "pid:${pid}" "ts_started:$(date +%s%3N)" "count_started:$((count_started+1))" "status:started" &
+      echoInfo "start service ${name}"
+      echoDeb "${run_script} &"
+      (
+        bash "${run_script}"
+        exit_code=$?
+        if [ "${exit_code}" = "${EXITCODE_TO_IGNORE_RESTART}" ]; then
+          status='successful'
+          echoSuc "${name} is successful stopped."
+        else
+          status='stopped'
+          echoWarn "${name} is stopped."
+        fi
+        store_process "name:${name}" "pid:" "ts_stopped:$(date +%s%3N)" "status:${status}" "exit_code:${exit_code}" &
+      ) &
+      pid=$!
+
+      if [ -n "${started_script}" ]; then
+        store_process "name:${name}" "pid:${pid}" "ts_started:$(date +%s%3N)" "count_started:$((count_started+1))" "status:started" "exit_code:" &
+        echoInfo "waiting on ${name} with ${started_script}"
         while ! ${started_script} ; do
           check_running_processes
           exit_code=$?
           [ ${exit_code} -gt 0 ] && break
           sleep 1
         done
-        store_process "name:${name}" "ts_ready:$(date +%s%3N)" "status:ready" &
+        store_process "name:${name}" "ts_ready:$(date +%s%3N)" "status:ready" "exit_code:" &
       else
-        echoInfo "start service ${name}"
-        echoDeb "${run_script} &"
-        bash "${run_script}" &
-        pid=$!
-        store_process "name:${name}" "pid:${pid}" "ts_started:$(date +%s%3N)" "count_started:$((count_started+1))" "status:ready" &
+        store_process "name:${name}" "pid:${pid}" "ts_started:$(date +%s%3N)" "count_started:$((count_started+1))" "status:ready" "exit_code:" &
         exit_code=0 # ok
       fi
       ;;
@@ -295,95 +367,84 @@ start_process() {
 }
 
 check_running_processes() {
-  local names
   local restart_service_on_stopped="${1:-false}"
-  local key_value
-  local i_key
-  local i_value
-  local name
-  local type
-  local pid
-  local status
-  local exit_code
-  local exited=0
+  local name key_value
+  local i_key i_value
+  local type pid status
+  local exit_code exited=0
 
-  names="$(awk 'NR > 1 {print $1}' "${PROCESSES_FILE}")"
-  for name in ${names}; do
-    pid=
-    for key_value in $(get_process "${name}"); do
+  while IFS= read -r name; do
+    while IFS= read -r key_value; do
       IFS=':' read -r i_key i_value <<< "${key_value}"
       case "${i_key}" in
-        type)           type="${i_value}";;
-        pid)            pid="${i_value}";;
-        status)         status="${i_value}";;
+        type)   type="${i_value}" ;;
+        status) status="${i_value}" ;;
       esac
-    done
+    done < <(get_process "${name}")
 
-    exit_code=
-    if [ -n "${pid}" ] && [ ! -e /proc/${pid}/exe ]; then
-      wait ${pid}
-      exit_code=$?
-    fi
-    if [ "${exit_code}" = "${EXITCODE_TO_IGNORE_RESTART}" ]; then
-      store_process "name:${name}" "pid:" "ts_stopped:$(date +%s%3N)" "exit_code:${exit_code}" "status:successful"
-      echoSuc "${name} is successful stopped."
-      continue
-    elif [[ ${exit_code} =~ ^[0-9]+$ ]]; then
-      store_process "name:${name}" "pid:" "ts_stopped:$(date +%s%3N)" "exit_code:${exit_code}" "status:stopped"
-      echoErr "${name} is unexpected stopped (with exit-code ${exit_code})."
-      exited=1
-    fi
-    if [ "${restart_service_on_stopped,,}" = "true" ] && [ "${status,,}" = "stopped" ] && [ "${type,,}" = "service" ]; then
-      start_process "${name}"
-      exited=0
-    fi
-  done
+    exited=0
+    case "${status}" in
+      added)      continue ;; # not running
+      pending)    continue ;; # wait on start
+      ignored)    continue ;; # ignored by MOS_INCLUDE_PROCESSES
+      excluded)   continue ;; # excluded by MOS_EXCLUDE_PROCESSES
+      started)    continue ;; # on startup
+      ready)      continue ;; # while running
+      successful) continue ;; # successful self stopped
+      terminate)  continue ;; # external stopping
+      terminated) continue ;; # external stopped
+      stopped)                # unexpected self stopped
+        case "${type,,}" in
+          action) continue ;; # at action ok
+          service)
+            if [ "${restart_service_on_stopped,,}" = 'true' ]; then
+              start_process "${name}"
+            else
+              exited=1
+            fi ;;
+        esac ;;
+    esac
+  done < <(awk 'NR > 1 {print $1}' "${PROCESSES_FILE}")
+
   return ${exited}
 }
 
 count_pids() {
-  local names
-  local name
-  local key_value
-  local i_key
-  local pid
-  local pid_count=0
+  local name key_value i_key pid pid_count=0
 
-  names="$(awk 'NR > 1 {print $1}' "${PROCESSES_FILE}")"
-  for name in ${names}; do
+  while IFS= read -r name; do
     for key_value in $(get_process "${name}"); do
       IFS=':' read -r i_key pid <<< "${key_value}"
-      if [ "${i_key}" = "pid" ] && [ -n "${pid}" ]; then
-        pid_count=$((pid_count+1))
-        continue
-      fi
+      [ "${i_key}" = "pid" ] && [ -n "${pid}" ] && pid_count=$((pid_count+1))
     done
-  done
+  done < <(awk 'NR > 1 {print $1}' "${PROCESSES_FILE}")
   echo ${pid_count}
 }
 
 stop_all_processes() {
-  local names
   local name
-  names="$(awk 'NR > 1 {print $1" "$2}' "${PROCESSES_FILE}" | sort -k2,2nr | cut -d ' ' -f 1)"
-  for name in ${names}; do
+
+  while IFS= read -r name; do
     stop_process "${name}"
-  done
+  done < <(awk 'NR > 1 {print $1" "$2}' "${PROCESSES_FILE}" | sort -k2,2nr | cut -d ' ' -f 1)
+
+  [[ ${MOS_DEBUG,,} =~ ^(true|yes|on|1)$ ]] && list_all_processes
 }
 
 stop_process() {
   local name="${1}"
-  local key_value
-  local i_key
-  local pid
+  local key_value i_key
+  local pid exit_code=''
 
   for key_value in $(get_process "${name}"); do
     IFS=':' read -r i_key pid <<< "${key_value}"
     if [ "${i_key}" = "pid" ]; then
       if [ -n "${pid}" ] && [ -d /proc/${pid}/ ]; then
         echoWarn "send terminate-signal to ${name}."
-        kill_processes_tree "${pid}" true 4
-        store_process "name:${name}" "pid:" "ts_stopped:$(date +%s%3N)" "status:terminated"
+        store_process "name:${name}" "status:terminate" "exit_code:"
+        kill_processes_tree "${pid}" 5
+        exit_code=$?
+        store_process "name:${name}" "pid:" "ts_stopped:$(date +%s%3N)" "status:terminated" "exit_code:${exit_code}"
       fi
       break
     fi
@@ -392,19 +453,30 @@ stop_process() {
 
 kill_processes_tree() {
   local pid="${1}"
-  local kill_self="${2:-false}"
-  local to_wait="${3:-0}"
-  local children
-  local child
-  [ -z "${pid}" ] && return
-  if children="$(pgrep -P "${pid}")"; then
-    for child in ${children}; do
-      kill_processes_tree "${child}" true 0
-    done
-  fi
-  if [[ "${kill_self}" == true ]] && sleep ${to_wait} && [ -d /proc/${pid}/ ]; then
-    kill -TERM "${pid}"
-  fi
+  local timeout="${2:-5}"
+  local pgid kpid cpid exit_code
+
+  ( # kill pid after timeout
+    cpid="$(ps -o pid= --ppid "${pid}" 2>/dev/null | tr -d ' ')" # child-pid from service-wrapper => service-pid
+    kill -TERM "${cpid}" 2>/dev/null || true
+    sleep "${timeout}"
+    kill -0 "${cpid}" 2>/dev/null && (kill -KILL "${cpid}" 2>/dev/null || true) || exit
+    sleep 1
+    pgid="$(ps -o pgid= -p "${cpid}" 2>/dev/null | tr -d ' ')" # process-group from child
+    kill -0 "${pid}" 2>/dev/null && [ -n "${pgid}" ] && [ "${pgid}" -gt 1 ] && (kill -KILL -- -"${pgid}" 2>/dev/null || true) || exit
+    sleep 1
+    pgid="$(ps -o pgid= -p "${pid}" 2>/dev/null | tr -d ' ')" # process-group from wrapper
+    kill -0 "${pid}" 2>/dev/null && [ -n "${pgid}" ] && [ "${pgid}" -gt 1 ] && (kill -KILL -- -"${pgid}" 2>/dev/null || true)
+  ) & kpid=$! # killer-pid
+
+  wait "${pid}"
+  exit_code=$?
+
+  # stop kill process if still running
+  kill "${kpid}" 2>/dev/null || true
+  wait "${kpid}" 2>/dev/null || true
+
+  return ${exit_code}
 }
 
 restart_all_processes() {
@@ -418,6 +490,15 @@ restart_process() {
   stop_process "${name}"
   start_process "${name}"
 }
+
+cleanup() {
+  [ -n "${CLEANED_UP}" ] && return
+  CLEANED_UP=1
+  echoWarn "received termination signal, shutting down processes..."
+  stop_all_processes
+  exit 0
+}
+trap cleanup INT TERM
 
 usage() {
   local default="${YELLOW}"
@@ -497,25 +578,25 @@ fi
 
 while [[ $# -gt 0 ]]; do
   case "${1}" in
-    -a   | --add)                      add_process "${2}";                    shift 2 ;;
-    -a=* | --add=*)                    add_process "${1#*=}";                 shift 1 ;;
-    -g   | --get)                      get_process "${2}";                    shift 2 ;;
-    -g=* | --get=*)                    get_process "${1#*=}";                 shift 1 ;;
-    -sa  | --start-all)                start_all_processes;                   exit $? ;;
-    -s   | --start)                    start_process "${2}";                  shift 2 ;;
-    -s=* | --start=*)                  start_process "${1#*=}";               shift 1 ;;
-    -ta  | --terminate-all)            stop_all_processes;                    shift 1 ;;
-    -t   | --terminate)                stop_process "${2}";                   shift 2 ;;
-    -t=* | --terminate=*)              stop_process "${1#*=}";                shift 1 ;;
-    -ra  | --restart-all)              restart_all_processes;                 exit $? ;;
-    -r   | --restart)                  restart_process "${2}";                shift 2 ;;
-    -r=* | --restart=*)                restart_process "${1#*=}";             shift 1 ;;
-    -n   | --get-names)                get_process_names;                     shift 1 ;;
-    -l   | --list)                     list_all_processes;                    shift 1 ;;
-    -e   | --get-successful-exit-code) echo "${EXITCODE_TO_IGNORE_RESTART}";  exit 0  ;;
-    -vn  | --version-number)           echo "${VERSION_NUMBER}";              exit 0  ;;
-    -v   | --version)                  echoCol "${VERSION}";                  exit 0  ;;
-    -h   | --help)                     usage;                                 exit 0  ;;
-    *)                                 echoErr "Unknown option: ${1}";        exit 1  ;;
+    -a   | --add)                      add_process "${2}";                              shift 2 ;;
+    -a=* | --add=*)                    add_process "${1#*=}";                           shift 1 ;;
+    -g   | --get)                      get_process "${2}";                              shift 2 ;;
+    -g=* | --get=*)                    get_process "${1#*=}";                           shift 1 ;;
+    -sa  | --start-all)                start_all_processes;                             exit 0  ;;
+    -s   | --start)                    send_control_command start_process "${2}";       shift 2 ;;
+    -s=* | --start=*)                  send_control_command start_process "${1#*=}";    shift 1 ;;
+    -ta  | --terminate-all)            send_control_command stop_all_processes;         shift 1 ;;
+    -t   | --terminate)                send_control_command stop_process "${2}";        shift 2 ;;
+    -t=* | --terminate=*)              send_control_command stop_process "${1#*=}";     shift 1 ;;
+    -ra  | --restart-all)              send_control_command restart_all_processes;      exit 0  ;;
+    -r   | --restart)                  send_control_command restart_process "${2}";     shift 2 ;;
+    -r=* | --restart=*)                send_control_command restart_process "${1#*=}";  shift 1 ;;
+    -n   | --get-names)                get_process_names;                               shift 1 ;;
+    -l   | --list)                     list_all_processes;                              shift 1 ;;
+    -e   | --get-successful-exit-code) echo "${EXITCODE_TO_IGNORE_RESTART}";            exit 0  ;;
+    -vn  | --version-number)           echo "${VERSION_NUMBER}";                        exit 0  ;;
+    -v   | --version)                  echoCol "${VERSION}";                            exit 0  ;;
+    -h   | --help)                     usage;                                           exit 0  ;;
+    *)                                 echoErr "Unknown option: ${1}";                  exit 1  ;;
   esac
 done
