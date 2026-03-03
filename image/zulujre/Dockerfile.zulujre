@@ -65,7 +65,7 @@ RUN cd ${MOS_TEMP_PATH} && \
       fi && \
       ln -sf ${JAVA_HOME}/bin/$(basename ${EXE_PATH}) /usr/bin/$(basename ${EXE_PATH}); \
     done && \
-    register --add-version="zulu-jre:\$(${JAVA_HOME}${JAVA_VERSION}/bin/java -version 2>&1 | head -n1 | sed -r 's/^.+\"(.+)\".+$/\1/' | cat) \$([ \"\$(grep -c \"\${JAVA_HOME}\" \${JAVA_HOME}/bin/java)\" -gt 2 ] && [ \"${JAVA_VERSION}\" = \"\${JAVA_VERSION:-\$(grep '*)' \"\${JAVA_HOME}/bin/java\"|sed -n 's/.*zulu\([0-9]\+\).*/\1/p')}\" ] && echo \"(current)\")" && \
+    register --add-version="zulu-jre:\$(${JAVA_HOME}${JAVA_VERSION}/bin/java -version 2>&1 | head -n1 | sed -r 's/^.+\"(.+)\".+$/\1/' | cat) \$([ \"\$(grep -c \"\${JAVA_HOME}\" \${JAVA_HOME}/bin/java)\" -gt 3 ] && [ \"${JAVA_VERSION}\" = \"\${JAVA_VERSION:-\$(grep '*)' \"\${JAVA_HOME}/bin/java\"|sed -n 's/.*zulu\([0-9]\+\).*/\1/p')}\" ] && echo \"(current)\")" && \
     if [ ! -e "${ENTRY_JAVA_CACERTS}" ]; then \
 		mkdir -m 777 ${ENTRY_JAVA_TRUSTS} && \
     	mv ${JAVA_HOME}${JAVA_VERSION}/lib/security/cacerts ${ENTRY_JAVA_CACERTS} && \
