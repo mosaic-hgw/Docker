@@ -16,60 +16,85 @@ java -version
 ${WILDFLY_HOME}/create_wildfly_admin.sh
 
 if [[ ! ${WF_MARKERFILES,,} =~ ^(true|false|yes|no|on|off|1|0)$ ]]; then
-    echo "${LINE}"
-    echoInfo "test write-permission in folder ${ENTRY_WILDFLY_DEPLOYS}"
-    MF_TESTFILE=${ENTRY_WILDFLY_DEPLOYS}/mf.test
-    WF_MARKERFILES="false"
-    touch ${MF_TESTFILE}.1 2>/dev/null
-    if [ -e ${MF_TESTFILE}.1 ]; then
-      touch ${MF_TESTFILE}.2 -r ${MF_TESTFILE}.1
-      if [ "" = "$(stat -c %y ${MF_TESTFILE}.* | uniq -u)" ]; then
-        echoInfo "write-permission detected -> WF_MARKERFILES=true"
-        WF_MARKERFILES="true"
-      else
-        echoInfo "write-permission detected, but not POSIX-conform -> WF_MARKERFILES=false"
-      fi
+  echo "${LINE}"
+  echoInfo "test write-permission in folder ${ENTRY_WILDFLY_DEPLOYS}"
+  MF_TESTFILE=${ENTRY_WILDFLY_DEPLOYS}/mf.test
+  WF_MARKERFILES='false'
+  touch ${MF_TESTFILE}.1 2>/dev/null
+  if [ -e ${MF_TESTFILE}.1 ]; then
+    touch ${MF_TESTFILE}.2 -r ${MF_TESTFILE}.1
+    if [ '' = "$(stat -c %y ${MF_TESTFILE}.* | uniq -u)" ]; then
+      echoInfo 'write-permission detected -> WF_MARKERFILES=true'
+      WF_MARKERFILES='true'
     else
-      echoInfo "no write-permission detected -> WF_MARKERFILES=false"
+      echoInfo 'write-permission detected, but not POSIX-conform -> WF_MARKERFILES=false'
     fi
-    rm ${MF_TESTFILE}.* 2>/dev/null
+  else
+    echoInfo 'no write-permission detected -> WF_MARKERFILES=false'
+  fi
+  rm ${MF_TESTFILE}.* 2>/dev/null
 fi
 
 if [[ "${WF_MARKERFILES,,}" != "$(cat ${MOS_READY_PATH}/markerfiles_mode)" ]]; then
-    echo -n "${WF_MARKERFILES,,}" > ${MOS_READY_PATH}/markerfiles_mode
-    if [[ ${WF_MARKERFILES,,} =~ ^(false|no|off|0)$ ]]; then
-        echo "/subsystem=deployment-scanner/scanner=default:write-attribute(name=\"scan-enabled\",value=true)" > "${WILDFLY_HOME}/internal_cli/markerfiles.cli"
-        echo "/subsystem=deployment-scanner/scanner=entrypoint:write-attribute(name=\"scan-enabled\",value=false)" >> "${WILDFLY_HOME}/internal_cli/markerfiles.cli"
-    else
-        echo "/subsystem=deployment-scanner/scanner=default:write-attribute(name=\"scan-enabled\",value=false)" > "${WILDFLY_HOME}/internal_cli/markerfiles.cli"
-        echo "/subsystem=deployment-scanner/scanner=entrypoint:write-attribute(name=\"scan-enabled\",value=true)" >> "${WILDFLY_HOME}/internal_cli/markerfiles.cli"
-    fi
-    rm -f "${MOS_READY_PATH}/markerfiles.cli.completed"
+  echo -n "${WF_MARKERFILES,,}" > ${MOS_READY_PATH}/markerfiles_mode
+  if [[ ${WF_MARKERFILES,,} =~ ^(false|off|no|0)$ ]]; then
+    echo '/subsystem=deployment-scanner/scanner=default:write-attribute(name="scan-enabled",value=true)' > "${WILDFLY_HOME}/internal_cli/markerfiles.cli"
+    echo '/subsystem=deployment-scanner/scanner=entrypoint:write-attribute(name="scan-enabled",value=false)' >> "${WILDFLY_HOME}/internal_cli/markerfiles.cli"
+  else
+    echo '/subsystem=deployment-scanner/scanner=default:write-attribute(name="scan-enabled",value=false)' > "${WILDFLY_HOME}/internal_cli/markerfiles.cli"
+    echo '/subsystem=deployment-scanner/scanner=entrypoint:write-attribute(name="scan-enabled",value=true)' >> "${WILDFLY_HOME}/internal_cli/markerfiles.cli"
+  fi
+  rm -f "${MOS_READY_PATH}/markerfiles.cli.completed"
 fi
 
 unset EXIT_CODE
 bash ${WILDFLY_HOME}/enable_keystore.sh
 EXIT_CODE=$?
 if [ -z "${EXIT_CODE}" ]; then
-    echoErr "keystore-test was not run"
-    exit 1
+  echoErr 'keystore-test was not run'
+  exit 1
 elif [ ${EXIT_CODE} -ne 0 ]; then
-    echoErr "keystore-test has failed"
-    exit ${EXIT_CODE}
+  echoErr 'keystore-test has failed'
+  exit ${EXIT_CODE}
 fi
 
 echo "${LINE}"
 
+# import cli files
 unset EXIT_CODE
 bash ${WILDFLY_HOME}/add_jboss_cli.sh
 EXIT_CODE=$?
 if [ -z "${EXIT_CODE}" ]; then
-    echoErr "jboss-cli was not run"
-    exit 1
+  echoErr 'jboss-cli was not run'
+  exit 1
 elif [ ${EXIT_CODE} -ne 0 ]; then
-    echoErr "jboss-cli is interrupted"
-    exit ${EXIT_CODE}
+  echoErr 'jboss-cli is interrupted'
+  exit ${EXIT_CODE}
 fi
+
+# sync/filter deployments
+if [[ "${WF_MARKERFILES,,}" == 'false' ]]; then
+  bash ${WILDFLY_HOME}/sync_deployments.sh --clear-destination --only-initial
+  bash ${WILDFLY_HOME}/sync_deployments.sh &
+
+#>available-env< WF_DISABLE_DEPLOYMENTS_BY_REGEX
+elif [ -n "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}" ] && ls ${ENTRY_WILDFLY_DEPLOYS}/ | grep -qE "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}" >/dev/null 2>1; then
+  echoInfo 'Disable Deployments by regular expression (WF_DISABLE_DEPLOYMENTS_BY_REGEX)'
+  DEP_NAMES="$(ls ${ENTRY_WILDFLY_DEPLOYS}/* | grep -E "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}")"
+  for DEP_NAME in ${DEP_NAMES}; do
+    [[ $(basename "${DEP_NAME,,}") =~ \.((un)?deployed|isdeploying|skipdeploy) ]] && continue
+    if touch --reference="${DEP_NAME}" "${DEP_NAME}.skipdeploy"; then
+      echoInfo ">>> disable $(basename "${DEP_NAME}")"
+    else
+      echoErr ">>> can not disable $(basename "${DEP_NAME}"), permission denied"
+      exit 125
+    fi
+  done
+  echo "${LINE}"
+fi
+
+# clear standalone history
+rm -f ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/current/*
 
 # wait for ports
 #>available-env< WF_WAIT_FOR_PORTS host:port[:timeout[:sleep]]
@@ -88,26 +113,5 @@ if [ -n "${WF_WAIT_FOR_PORTS}" ]; then
   done
 fi
 
-if [[ "${WF_MARKERFILES,,}" == "false" ]]; then
-  bash ${WILDFLY_HOME}/sync_deployments.sh &
-
-#>available-env< WF_DISABLE_DEPLOYMENTS_BY_REGEX
-elif [ -n "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}" ] && ls ${ENTRY_WILDFLY_DEPLOYS}/ | grep -qE "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}" >/dev/null 2>1; then
-    echoInfo "Disable Deployments by regular expression (WF_DISABLE_DEPLOYMENTS_BY_REGEX)"
-    DEP_NAMES="$(ls ${ENTRY_WILDFLY_DEPLOYS}/* | grep -E "${WF_DISABLE_DEPLOYMENTS_BY_REGEX}")"
-    for DEP_NAME in ${DEP_NAMES}; do
-        [[ $(basename "${DEP_NAME,,}") =~ \.((un)?deployed|isdeploying|skipdeploy) ]] && continue
-        if touch --reference="${DEP_NAME}" "${DEP_NAME}.skipdeploy"; then
-            echoInfo ">>> disable $(basename "${DEP_NAME}")"
-        else
-            echoErr ">>> can not disable $(basename "${DEP_NAME}"), permission denied"
-            exit 125
-        fi
-    done
-    echo "${LINE}"
-fi
-
-rm -f ${WILDFLY_HOME}/standalone/configuration/standalone_xml_history/current/*
-
-WF_OPTS="-Djboss.server.log.dir=${ENTRY_LOGS}/wildfly $([[ ${WF_DEBUG,,} =~ ^(true|yes|on|1)$ ]] && echo "--debug")"
+WF_OPTS="-Djboss.server.log.dir=${ENTRY_LOGS}/wildfly $([[ ${WF_DEBUG,,} =~ ^(true|yes|on|1)$ ]] && echo '--debug')"
 exec ${WILDFLY_HOME}/bin/standalone.sh -b 0.0.0.0 -bmanagement 0.0.0.0 ${WF_OPTS}

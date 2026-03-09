@@ -61,6 +61,8 @@ ENV WILDFLY_HOME="${HOME}/wildfly" \
 
 USER root
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${MOS_TEMP_PATH}"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["help-and-usage", "/help-and-usage"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["README.md", "/help-and-usage/layer-readme/README-wildfly.md"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo -n "> 1. get mysql-connector " && \
 	((test -f ${MYSQL_CONNECTOR_FILE} && echo e) || (echo d && curl -LfsSO ${MYSQL_CONNECTOR_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${MYSQL_CONNECTOR_DOWNLOAD_URL} \n" && exit 1)) && \
@@ -148,7 +150,7 @@ RUN echo "> 11. cleanup" && \
 ###########
 FROM ${TAG}
 
-ARG DATE_YMD="20260212"
+ARG DATE_YMD="20260304"
 ENV WILDFLY_HOME="${HOME}/wildfly" \
     JBOSS_CLI="${HOME}/wildfly/bin/jboss-cli.sh" \
     LAUNCH_JBOSS_IN_BACKGROUND="true" \
@@ -181,7 +183,7 @@ LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
 USER root
 COPY --from=build --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["${WILDFLY_HOME}", "${WILDFLY_HOME}"]
 COPY --from=build --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["${HOME}/versions.sh", "${HOME}"]
-COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}/"]
+COPY --from=build --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["/help-and-usage", "${ENTRY_USAGE}/"]
 RUN cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
     if [ "$(date +%F)" != "$(stat -c '%.10y' $(ls -t /var/lib/dpkg/info/*.list | head -n 1))" ]; then \
@@ -210,7 +212,7 @@ RUN cd ${MOS_TEMP_PATH} && \
     apt-get autoremove -y && \
     ln -s ${WILDFLY_HOME}/standalone/data/addins ${ENTRY_WILDFLY_ADDINS} && \
     chown ${USER}:${USER} -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_ADDINS} ${ENTRY_WILDFLY_LOGS} ${ENTRY_USAGE} && \
-    chmod 777 -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_LOGS} ${ENTRY_USAGE} && \
+    chmod 777 -R ${HOME} ${ENTRY_LOGS} ${ENTRY_WILDFLY_LOGS} && \
     rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
 
 USER ${USER}

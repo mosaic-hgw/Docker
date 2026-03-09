@@ -1,3 +1,5 @@
+echo configure_wf_commons.cli version from 2026-03-09
+
 # logger for console
 #####################
 #>deprecated-env< CONSOLE_LOG_LEVEL WF_SYSTEM_LOG_LEVEL
@@ -31,12 +33,18 @@ end-if
 if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSTEM_LOG_TO})
 	set logTo=${env.WF_SYSTEM_LOG_TO}
 end-if
+if (outcome == success && result[0] == "CONSOLE") of /subsystem=logging/root-logger=ROOT:read-attribute(name=handlers)
+    /subsystem=logging/root-logger=ROOT:remove-handler(name=CONSOLE)
+end-if
 if (result ~= "(?i).*console.*") of :resolve-expression(expression=$logTo)
     echo \>\>\> add system-logger to console
-else
-	/subsystem=logging/root-logger=ROOT:remove-handler(name="CONSOLE")
+    /subsystem=logging/root-logger=ROOT:add-handler(name="CONSOLE")
 end-if
 /subsystem=logging/root-logger=ROOT:remove-handler(name="FILE")
+if (outcome == success) of /subsystem=logging/custom-handler=system-file-handler:read-resource
+	/subsystem=logging/root-logger=ROOT:remove-handler(name=system-file-handler)
+	/subsystem=logging/custom-handler=system-file-handler:remove
+end-if
 if (result ~= "(?i).*file.*") of :resolve-expression(expression=$logTo)
     echo \>\>\> add system-logger as separate file (system.log)
 	/subsystem=logging/custom-handler=system-file-handler:add(class=org.jboss.logmanager.handlers.PeriodicSizeRotatingFileHandler, module=org.jboss.logmanager, formatter=$logPattern, properties={rotateSize=10240000,maxBackupIndex=20,append=true,suffix=".yyyy-MM-dd",fileName="${jboss.server.log.dir}/system/system.log"})

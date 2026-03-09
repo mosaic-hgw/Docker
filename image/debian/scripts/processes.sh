@@ -9,8 +9,8 @@
 source "${HOME}/commons.sh"
 
 # VARIABLES ############################################################################################################
-VERSION_NUMBER='2026.1.0'
-VERSION="\n Version ${VERSION_NUMBER} from 2026-02-04\n Maintained by Ronny Schuldt\n"
+VERSION_NUMBER='2026.1.1'
+VERSION="\n Version ${VERSION_NUMBER} from 2026-03-06\n Maintained by Ronny Schuldt\n"
 PROCESSES_FILE="${HOME}/mosaic_processes"
 CONTROL_FIFO="${HOME}/mosaic_process_control"
 # COLS format: key:width:label
@@ -203,6 +203,7 @@ start_all_processes() {
       echoErr "one service is finished. abort all start processes."
       stop_all_processes
       rm -f "${CONTROL_FIFO}"
+      echoDeb "start_all_processes return(1) 1"
       return 1
     fi
 
@@ -217,9 +218,10 @@ start_all_processes() {
       start_process "${name}"
       exit_code=$?
       if [ ${exit_code} -gt 0 ] && [ ! "${exit_code}" = "${EXITCODE_TO_IGNORE_RESTART}" ] ; then
-        echoErr "cannot start process ${name}. abort all processes."
+        echoErr "cannot successful execute process ${name}. abort all processes."
         stop_all_processes
         rm -f "${CONTROL_FIFO}"
+        echoDeb "start_all_processes: return(2) ${exit_code}"
         return ${exit_code}
       fi
       started=$((started+1))
@@ -290,6 +292,7 @@ start_all_processes() {
   done
   rm -f "${CONTROL_FIFO}"
 
+  echoDeb "start_all_processes: return(3) ${exit_code}"
   return ${exit_code}
 }
 
@@ -313,6 +316,7 @@ start_process() {
 
   if [ -n "${pid}" ] && [ -e /proc/${pid}/exe ]; then
     echoWarn "${name} already running"
+    echoDeb "start_process: return(1) 0"
     return 0
   fi
 
@@ -363,6 +367,7 @@ start_process() {
       ;;
   esac
 
+  echoDeb "start_process: return(2) ${exit_code}"
   return ${exit_code}
 }
 
@@ -406,6 +411,7 @@ check_running_processes() {
     esac
   done < <(awk 'NR > 1 {print $1}' "${PROCESSES_FILE}")
 
+  echoDeb "check_running_processes: return(1) ${exited}"
   return ${exited}
 }
 
@@ -476,13 +482,17 @@ kill_processes_tree() {
   kill "${kpid}" 2>/dev/null || true
   wait "${kpid}" 2>/dev/null || true
 
+  echoDeb "kill_processes_tree: return(1) ${exit_code}"
   return ${exit_code}
 }
 
 restart_all_processes() {
+  local exit_code=0
   stop_all_processes
   start_all_processes
-  return $?
+  exit_code=$?
+  echoDeb "restart_all_processes: return(1) ${exit_code}"
+  return ${exit_code}
 }
 
 restart_process() {
@@ -582,13 +592,13 @@ while [[ $# -gt 0 ]]; do
     -a=* | --add=*)                    add_process "${1#*=}";                           shift 1 ;;
     -g   | --get)                      get_process "${2}";                              shift 2 ;;
     -g=* | --get=*)                    get_process "${1#*=}";                           shift 1 ;;
-    -sa  | --start-all)                start_all_processes;                             exit 0  ;;
+    -sa  | --start-all)                start_all_processes;                             exit $? ;;
     -s   | --start)                    send_control_command start_process "${2}";       shift 2 ;;
     -s=* | --start=*)                  send_control_command start_process "${1#*=}";    shift 1 ;;
     -ta  | --terminate-all)            send_control_command stop_all_processes;         shift 1 ;;
     -t   | --terminate)                send_control_command stop_process "${2}";        shift 2 ;;
     -t=* | --terminate=*)              send_control_command stop_process "${1#*=}";     shift 1 ;;
-    -ra  | --restart-all)              send_control_command restart_all_processes;      exit 0  ;;
+    -ra  | --restart-all)              send_control_command restart_all_processes;      exit $? ;;
     -r   | --restart)                  send_control_command restart_process "${2}";     shift 2 ;;
     -r=* | --restart=*)                send_control_command restart_process "${1#*=}";  shift 1 ;;
     -n   | --get-names)                get_process_names;                               shift 1 ;;
