@@ -128,20 +128,21 @@ echo "${LINE}"
 MYSQL_CMD="mysqld --defaults-file=${MY_COPY_CONF} --socket=${ENTRY_MYSQL_SOCKET}/mysql.sock --datadir=${ENTRY_MYSQL_DATADIR}"
 if [[ ${MYSQL_LOG_TO^^} == *"CONSOLE"* ]] && [[ ${MYSQL_LOG_TO^^} == *"FILE"* ]]; then
   echoInfo "Starting MySQL-Server with logging to console and file"
-  echoDeb "${MYSQL_CMD}"
-  ${MYSQL_CMD} --log-error=${ENTRY_MYSQL_LOGS}/error.log --general-log=1 --general-log-file=${ENTRY_MYSQL_LOGS}/general.log ${OPTS} 2>&1 | tee -a "${ENTRY_MYSQL_LOGS}/stdout.log"
+  MYSQL_CMD_EXT="${MYSQL_CMD} --log-error=${ENTRY_MYSQL_LOGS}/error.log --general-log=1 --general-log-file=${ENTRY_MYSQL_LOGS}/general.log ${OPTS} 2>&1 | tee -a '${ENTRY_MYSQL_LOGS}/stdout.log'"
 elif [[ ${MYSQL_LOG_TO^^} = *"CONSOLE"* ]] && [[ ${MYSQL_LOG_TO^^} != *"FILE"* ]]; then
   echoInfo "Starting MySQL-Server with logging to console"
-  echoDeb "${MYSQL_CMD}"
-  ${MYSQL_CMD} --log-error=${MYSQL_HOME}/stdout.log --general-log=1 --general-log-file=${MYSQL_HOME}/stdout.log ${OPTS}
+  MYSQL_CMD_EXT="${MYSQL_CMD} --log-error=${MYSQL_HOME}/stdout.log --general-log=1 --general-log-file=${MYSQL_HOME}/stdout.log ${OPTS}"
 elif [[ ${MYSQL_LOG_TO^^} != *"CONSOLE"* ]] && [[ ${MYSQL_LOG_TO^^} == *"FILE"* ]]; then
   echoInfo "Starting MySQL-Server with logging to file"
-  echoDeb "${MYSQL_CMD}"
-  ${MYSQL_CMD} --log-error=${ENTRY_MYSQL_LOGS}/error.log --general-log=1 --general-log-file=${ENTRY_MYSQL_LOGS}/general.log ${OPTS} > "${ENTRY_MYSQL_LOGS}/stdout.log" 2>&1
+  MYSQL_CMD_EXT="${MYSQL_CMD} --log-error=${ENTRY_MYSQL_LOGS}/error.log --general-log=1 --general-log-file=${ENTRY_MYSQL_LOGS}/general.log ${OPTS} > '${ENTRY_MYSQL_LOGS}/stdout.log' 2>&1"
 else
   echoInfo "Starting MySQL-Server with no logging"
-  echoDeb "${MYSQL_CMD}"
-  ${MYSQL_CMD} --log-error=/dev/null --general-log=0 ${OPTS} > /dev/null 2>&1
+  MYSQL_CMD_EXT="${MYSQL_CMD} --log-error=/dev/null --general-log=0 ${OPTS} > /dev/null 2>&1"
 fi
 
-echoWarn "MySQL-Server is stopped"
+echoDeb "${MYSQL_CMD}"
+exec ${MYSQL_CMD_EXT}
+exit_code=$?
+
+echoWarn "MySQL-Server is stopped (exit ${exit_code})"
+exit ${exit_code}

@@ -1,9 +1,12 @@
-echo configure_wf_commons.cli version from 2026-03-09
+echo configure_wf_commons.cli version from 2026-05-19
 
 # logger for console
 #####################
+set logLevel="INFO"
 #>deprecated-env< CONSOLE_LOG_LEVEL WF_SYSTEM_LOG_LEVEL
-set logLevel=${CONSOLE_LOG_LEVEL}
+if (outcome == "success") of :resolve-expression(expression=${env.CONSOLE_LOG_LEVEL})
+	set logLevel=${env.CONSOLE_LOG_LEVEL}
+end-if
 #>deprecated-env< WF_CONSOLE_LOG_LEVEL WF_SYSTEM_LOG_LEVEL
 if (outcome == "success") of :resolve-expression(expression=${env.WF_CONSOLE_LOG_LEVEL})
 	set logLevel=${env.WF_CONSOLE_LOG_LEVEL}
@@ -12,16 +15,49 @@ end-if
 if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSTEM_LOG_LEVEL})
 	set logLevel=${env.WF_SYSTEM_LOG_LEVEL}
 end-if
-if (result ~= "(?i)(trace|debug|info|warn|error|fatal)") of :resolve-expression(expression=$logLevel)
+if (result ~= "(?i)severe") of :resolve-expression(expression=$logLevel)
+	set logLevel="SEVERE"
+end-if
+if (result ~= "(?i)fatal") of :resolve-expression(expression=$logLevel)
+	set logLevel="FATAL"
+end-if
+if (result ~= "(?i)error") of :resolve-expression(expression=$logLevel)
+	set logLevel="ERROR"
+end-if
+if (result ~= "(?i)info") of :resolve-expression(expression=$logLevel)
+	set logLevel="INFO"
+end-if
+if (result ~= "(?i)warn(ing)?") of :resolve-expression(expression=$logLevel)
+	set logLevel="WARN"
+end-if
+if (result ~= "(?i)debug") of :resolve-expression(expression=$logLevel)
+	set logLevel="DEBUG"
+end-if
+if (result ~= "(?i)trace") of :resolve-expression(expression=$logLevel)
+	set logLevel="TRACE"
+end-if
+if (result ~= "(?i)fine(r|st)?") of :resolve-expression(expression=$logLevel)
+	set logLevel="FINE"
+end-if
+if (result ~= "(SEVERE|FATAL|ERROR|INFO|WARN|DEBUG|TRACE)?") of :resolve-expression(expression=$logLevel)
+else
+	echo \>\>\> unknown loglevel for system-logger: $logLevel
+end-if
+if (result != "") of :resolve-expression(expression=$logLevel)
 	echo \>\>\> set system-logger to level $logLevel
 	/subsystem=logging/console-handler=CONSOLE:write-attribute(name=level,value=$logLevel)
 	/subsystem=logging/root-logger=ROOT:write-attribute(name=level,value=$logLevel)
 end-if
-
 #>available-env< WF_SYSTEM_LOG_PATTERN %d %-5.5p %-4.4L %-40.40c{2.} | %m%n
 set logPattern="%d %-5.5p %-4.4L %-40.40c{2.} | %m%n"
 if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSTEM_LOG_PATTERN})
 	set logPattern=${env.WF_SYSTEM_LOG_PATTERN}
+end-if
+#>available-env< WF_SYSTEM_LOG_COLORS
+set logColors="${env.WF_SYSTEM_LOG_COLORS}"
+if (result != "") of :resolve-expression(expression=$logColors)
+    echo \>\>\> add color-map to system-logger: $logColors
+	/subsystem=logging/pattern-formatter=COLOR-PATTERN:write-attribute(name=color-map, value=$logColors)
 end-if
 #>deprecated-env< WF_CONSOLE_LOG_TO_FILE WF_SYSTEM_LOG_TO
 if (result ~= "(?i)(on|true|yes|1)") of :resolve-expression(expression=${env.WF_CONSOLE_LOG_TO_FILE})
@@ -33,22 +69,23 @@ end-if
 if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSTEM_LOG_TO})
 	set logTo=${env.WF_SYSTEM_LOG_TO}
 end-if
-if (outcome == success && result[0] == "CONSOLE") of /subsystem=logging/root-logger=ROOT:read-attribute(name=handlers)
-    /subsystem=logging/root-logger=ROOT:remove-handler(name=CONSOLE)
-end-if
+/subsystem=logging/root-logger=ROOT:remove-handler(name=CONSOLE)
+/subsystem=logging/root-logger=ROOT:remove-handler(name=FILE)
+/subsystem=logging/root-logger=ROOT:remove-handler(name=system-file-handler)
 if (result ~= "(?i).*console.*") of :resolve-expression(expression=$logTo)
     echo \>\>\> add system-logger to console
     /subsystem=logging/root-logger=ROOT:add-handler(name="CONSOLE")
 end-if
-/subsystem=logging/root-logger=ROOT:remove-handler(name="FILE")
 if (outcome == success) of /subsystem=logging/custom-handler=system-file-handler:read-resource
-	/subsystem=logging/root-logger=ROOT:remove-handler(name=system-file-handler)
+	# deprecated
 	/subsystem=logging/custom-handler=system-file-handler:remove
 end-if
 if (result ~= "(?i).*file.*") of :resolve-expression(expression=$logTo)
     echo \>\>\> add system-logger as separate file (system.log)
-	/subsystem=logging/custom-handler=system-file-handler:add(class=org.jboss.logmanager.handlers.PeriodicSizeRotatingFileHandler, module=org.jboss.logmanager, formatter=$logPattern, properties={rotateSize=10240000,maxBackupIndex=20,append=true,suffix=".yyyy-MM-dd",fileName="${jboss.server.log.dir}/system/system.log"})
-    /subsystem=logging/root-logger=ROOT:add-handler(name="system-file-handler")
+	# deprecated
+    /subsystem=logging/custom-handler=system-file-handler:add(class=org.jboss.logmanager.handlers.PeriodicSizeRotatingFileHandler, module=org.jboss.logmanager, formatter=$logPattern, properties={rotateSize=10240000,maxBackupIndex=20,append=true,suffix=".yyyy-MM-dd",fileName="${jboss.server.log.dir}/system/system.log"})
+	/subsystem=logging/custom-handler=system-file-handler:write-attribute(name=formatter,value=$logPattern)
+	/subsystem=logging/root-logger=ROOT:add-handler(name="system-file-handler")
 end-if
 
 # Set WSDL address to use incoming request address
@@ -165,4 +202,6 @@ if (result ~= "(?i)(off|false|no|0)") of :resolve-expression(expression=$temp)
     /subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=allow-unescaped-characters-in-url,value=true)
     /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=enable-http2,value=false)
     /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=allow-unescaped-characters-in-url,value=true)
+else
+    echo \>\>\> enable http2
 end-if

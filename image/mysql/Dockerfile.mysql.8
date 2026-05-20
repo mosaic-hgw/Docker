@@ -1,11 +1,11 @@
 ARG TAG=mosaicgreifswald/debian:latest
-FROM ${TAG}
+FROM ${TAG} AS build
 
 # ###license-information-start###
 # The MOSAIC-Project - MySQL-Server
 # __
-# Copyright (C) 2009 - 2025 Institute for Community Medicine
-# University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+# Copyright (C) 2009 - 2026 Institute for Community Medicine
+# University Medicine of Greifswald - kontakt-ths@med.uni-greifswald.de
 # __
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -22,13 +22,48 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20250722"
-ARG MYSQL_VERSION="8.4.6"
-ARG MYSQL_X86_64_DOWNLOAD_URL="https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.28-x86_64-minimal.tar.xz"
-ARG MYSQL_X86_64_SHA256="f284b17b9e038adbe77f0dd5fb11ed30262286b23a390b8b4e367abc3574c42e"
-ARG MYSQL_AARCH64_DOWNLOAD_URL="https://cdn.mysql.com/Downloads/MySQL-8.4/mysql-${MYSQL_VERSION}-linux-glibc2.28-aarch64.tar.xz"
-ARG MYSQL_AARCH64_SHA256="ab2c553ee4349a6bbe62325d4efcb427204e389264c4759ca32a92eae9aa2abc"
+ARG MYSQL_VERSION="8.4.9"
+ARG MYSQL_DOWNLOAD_URL="https://cdn.mysql.com/Downloads/MySQL-8.4"
+ARG MYSQL_X86_64_FILE="mysql-${MYSQL_VERSION}-linux-glibc2.28-x86_64-minimal.tar.xz"
+ARG MYSQL_X86_64_SHA256="d0142fc30e04bae7f15a46567238adf8956acccd35c5bca6e448322644536e3d"
+ARG MYSQL_AARCH64_FILE="mysql-${MYSQL_VERSION}-linux-glibc2.28-aarch64.tar.xz"
+ARG MYSQL_AARCH64_SHA256="497a4143d542b5b85ec7249016b0ff6ac6e7a855302a9822f667ca293d801aea"
 
+ENV MYSQL_HOME="${HOME}/mysql"
+
+# create image
+USER root
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${MOS_TEMP_PATH}"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["help-and-usage", "/help-and-usage/"]
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["README.md", "/help-and-usage/layer-readme/README-mysql.md"]
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
+	--mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=apt-lists \
+    --mount=type=cache,target=/downloads,sharing=locked,id=downloads \
+	echo -n "> 0. check cache: apt-cache ($(du -sh /var/cache/apt/archives/ | awk '{print $1}'), $(ls /var/cache/apt/archives | wc -w) files)" && \
+	echo ", downloads ($(du -sh /downloads/ | awk '{print $1}'), $(ls /downloads | wc -w) files)" && \
+    \
+    echo "> 1. install system-updates" && \
+    apt-get update && apt-get upgrade -y && \
+    \
+    echo "> 2. install xz-utils" && \
+    apt-get install -y xz-utils && \
+    \
+    echo -n "> 3. mysql-server " && \
+	cd /downloads && \
+    ARCH="$([ "$(uname -m)" = "x86_64" ] && echo "x86_64" || echo "aarch64")" && \
+    MYSQL_FILE="$([ "${ARCH}" = "x86_64" ] && echo "${MYSQL_X86_64_FILE}" || echo "${MYSQL_AARCH64_FILE}")" && \
+    MYSQL_SHA256="$([ "${ARCH}" = "x86_64" ] && echo "${MYSQL_X86_64_SHA256}" || echo "${MYSQL_AARCH64_SHA256}")" && \
+    ((test -f ${MYSQL_FILE} && echo e) || (echo d && curl -LfsSO ${MYSQL_DOWNLOAD_URL}/${MYSQL_FILE}) || (>&2 echo -e "\ncurl -LfsSO ${MYSQL_DOWNLOAD_URL}/${MYSQL_FILE}\n" && exit 1)) && \
+    (sha256sum ${MYSQL_FILE} | grep ${MYSQL_SHA256} > /dev/null || (>&2 echo "sha256sum(${ARCH}) failed $(sha256sum ${MYSQL_FILE})" && exit 1)) && \
+    tar xf ${MYSQL_FILE} && \
+    mv $(ls --color=never -d mysql*/ | sed -e 's-/$--') ${MYSQL_HOME} && \
+    mv -t ${MYSQL_HOME}/ ${MOS_TEMP_PATH}/*.sh ${MOS_TEMP_PATH}/*.cnf && \
+    echo "export LD_LIBRARY_PATH=/opt/mysql/lib:/lib:/lib64:/usr/lib" > ${MYSQL_HOME}/library_path.sh
+
+###########
+FROM ${TAG}
+
+ARG DATE_YMD="20260304"
 ENV MYSQL_HOME="${HOME}/mysql" \
     MYSQL_OPTS="" \
     MYSQL_ENABLE_UPDATE_SCANNER="false" \
@@ -51,29 +86,22 @@ LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
 
 # create image
 USER root
-COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${MYSQL_HOME}"]
-COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}/"]
-RUN cd ${MOS_TEMP_PATH} && \
+COPY --from=build --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["${MYSQL_HOME}", "${MYSQL_HOME}"]
+COPY --from=build --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["/help-and-usage", "${ENTRY_USAGE}/"]
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
+	--mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=apt-lists \
+    echo "> 0. check cache: apt-cache ($(du -sh /var/cache/apt/archives/ | awk '{print $1}'), $(ls /var/cache/apt/archives | wc -w) files)" && \
+	\
     echo "> 1. install system-updates" && \
-    apt-get update && \
-    if [ "$(date +%F)" != "$(stat -c '%.10y' $(ls -t /var/lib/dpkg/info/*.list | head -n 1))" ]; then apt-get upgrade -y; fi && \
+    apt-get update && apt-get upgrade -y && \
     \
-    echo "> 2. install xz-utils, procps and libraries" && \
-    apt-get install -y xz-utils procps libaio1 libnuma1 libncurses5 && \
+    echo "> 2. install procps and libraries" && \
+    apt-get install -y procps libaio1t64 libnuma1 libncurses6 && \
     mkdir -m 777 ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_UPDATE_SQLS} ${ENTRY_MYSQL_SOCKET} ${ENTRY_LOGS}/mysql && \
-    \
-    echo "> 3. mysql-server" && \
-    ARCH="$([ "$(uname -m)" = "x86_64" ] && echo "x86_64" || echo "aarch64")" && \
-    MYSQL_DOWNLOAD_URL="$([ "${ARCH}" = "x86_64" ] && echo "${MYSQL_X86_64_DOWNLOAD_URL}" || echo "${MYSQL_AARCH64_DOWNLOAD_URL}")" && \
-    MYSQL_SHA256="$([ "${ARCH}" = "x86_64" ] && echo "${MYSQL_X86_64_SHA256}" || echo "${MYSQL_AARCH64_SHA256}")" && \
-    (curl -Lfo mysql.tar ${MYSQL_DOWNLOAD_URL} || (>&2 /bin/echo -e "\ncurl -Lfo mysql.tar ${MYSQL_DOWNLOAD_URL}\n" && exit 1)) && \
-    (sha256sum mysql.tar | grep ${MYSQL_SHA256} > /dev/null || (>&2 echo "sha256sum(${ARCH}) failed $(sha256sum mysql.tar)" && exit 1)) && \
-    tar xf mysql.tar && \
-    cp -R mysql-*/* ${MYSQL_HOME}/ && \
-    echo "export LD_LIBRARY_PATH=/opt/mysql/lib:/lib:/lib64:/usr/lib" > ${MYSQL_HOME}/library_path.sh && \
     echo "export PATH=${MYSQL_HOME}/bin:${PATH}" > /etc/profile.d/mysql.sh && \
     \
-    echo "> 4. register mysql" && \
+    echo "> 3. register mysql" && \
     register \
         --add-version="MySQL-Server:\$(${MYSQL_HOME}/bin/mysqld -V 2>/dev/null | sed -r 's/^.+Ver ([0-9\.]+) .+$/\1/' | cat)" \
         --add-entrypoint="ENTRY_MYSQL_DATADIR:${ENTRY_MYSQL_DATADIR}" \
@@ -85,19 +113,16 @@ RUN cd ${MOS_TEMP_PATH} && \
         --add-healthcheck-script="${MYSQL_HOME}/healthcheck_mysql.sh" \
         --add-process="mysql:10:service:${MYSQL_HOME}/run_mysql.sh:${MYSQL_HOME}/mysql_started.sh" && \
     \
-    echo "> 5. cleanup" && \
-    apt-get remove --purge --auto-remove -y xz-utils && \
-    apt-get clean && \
-    apt-get autoclean && \
+    echo "> 4. cleanup" && \
     apt-get autoremove -y && \
     ln -s ${MYSQL_HOME}/my.cnf ${ENTRY_MYSQL_MY_CNF} && \
     ln -s ${ENTRY_LOGS}/mysql ${ENTRY_MYSQL_LOGS} && \
     ln -s ${MYSQL_HOME}/bin/* /usr/bin/ && \
     ln -s /dev/stdout ${MYSQL_HOME}/stdout.log && \
+    ln -s /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/libaio.so.1 && \
     chown ${USER}:${USER} -R ${MYSQL_HOME} ${ENTRY_MYSQL_DATADIR} ${ENTRY_MYSQL_SQLS} ${ENTRY_MYSQL_UPDATE_SQLS} \
     	${ENTRY_MYSQL_SOCKET} ${ENTRY_MYSQL_MY_CNF} ${ENTRY_MYSQL_LOGS} ${ENTRY_USAGE} && \
-    chmod 777 ${MYSQL_HOME} && chmod 666 ${MYSQL_HOME}/my.cnf && chmod 755 -R ${MYSQL_HOME}/*.sh && \
-	rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
+    chmod 777 ${MYSQL_HOME} && chmod 666 ${MYSQL_HOME}/my.cnf
 
 USER ${USER}
 

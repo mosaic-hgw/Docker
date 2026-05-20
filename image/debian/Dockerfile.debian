@@ -4,7 +4,7 @@ FROM debian:stable-slim
 # The MOSAIC-Project - Debian Stable
 # __
 # Copyright (C) 2009 - 2026 Institute for Community Medicine
-# University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+# University Medicine of Greifswald - kontakt-ths@med.uni-greifswald.de
 # __
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -21,8 +21,9 @@ FROM debian:stable-slim
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20260204"
-ARG WAIT_FOR_IT_DOWNLOAD_URL="https://raw.githubusercontent.com/vishnubob/wait-for-it/ed77b63706ea721766a62ff22d3a251d8b4a6a30/wait-for-it.sh"
+ARG DATE_YMD="20260304"
+ARG WAIT_FOR_IT_FILE="wait-for-it.sh"
+ARG WAIT_FOR_IT_DOWNLOAD_URL="https://raw.githubusercontent.com/vishnubob/wait-for-it/ed77b63706ea721766a62ff22d3a251d8b4a6a30/${WAIT_FOR_IT_FILE}"
 ARG WAIT_FOR_IT_SHA256="2ea7475e07674e4f6c1093b4ad6b0d8cbbc6f9c65c73902fb70861aa66a6fbc0"
 
 ENV HOME="/opt/mosaic" \
@@ -47,11 +48,18 @@ LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
 
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${HOME}"]
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}"]
-RUN cd ${HOME} && \
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["README.md", "${ENTRY_USAGE}/layer-readme/README-debian.md"]
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
+	--mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=apt-lists \
+	--mount=type=cache,target=/downloads,sharing=locked,id=downloads \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    echo -n "> 0. check cache: apt-cache ($(du -sh /var/cache/apt/archives/ | awk '{print $1}'), $(ls /var/cache/apt/archives | wc -w) files)" && \
+    echo ", downloads ($(du -sh /downloads/ | awk '{print $1}'), $(ls /downloads | wc -w) files)" && \
+    cd ${HOME} && \
     echo "> 1. install system-updates" && \
     apt-get update && apt-get upgrade -y && \
     \
-    echo "> 2. install missing packages (curl,procps)" && \
+    echo "> 2. install missing packages (curl,procps) " && \
     apt-get install -y curl procps && \
     \
     echo "> 3. create user and group" && \
@@ -61,9 +69,12 @@ RUN cd ${HOME} && \
     echo "> 4. create folders and permissions" && \
     mkdir -m 777 ${MOS_READY_PATH} ${MOS_TEMP_PATH} ${ENTRY_LOGS} && \
     \
-    echo "> 5. download wait-for-it-script" && \
-    (curl -Lfo wait-for-it.sh ${WAIT_FOR_IT_DOWNLOAD_URL} || (>&2 echo "curl -Lfo wait-for-it.sh ${WAIT_FOR_IT_DOWNLOAD_URL}\n" && exit 1)) && \
-    (sha256sum wait-for-it.sh | grep -q ${WAIT_FOR_IT_SHA256} > /dev/null || (>&2 echo "sha256sum failed $(sha256sum wait-for-it.sh)" && exit 1)) && \
+    echo -n "> 5. download wait-for-it-script" && \
+    cd /downloads && \
+	((test -f ${WAIT_FOR_IT_FILE} && echo e) || (echo d && curl -LfsSO ${WAIT_FOR_IT_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${WAIT_FOR_IT_DOWNLOAD_URL} \n" && exit 1)) && \
+	sha256sum ${WAIT_FOR_IT_FILE} | grep -q ${WAIT_FOR_IT_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum ${WAIT_FOR_IT_FILE})" && exit 1) && \
+    cp ${WAIT_FOR_IT_FILE} ${HOME}/${WAIT_FOR_IT_FILE} && \
+    cd ${HOME} && \
     \
     echo "> 6. register bash-scripts" && \
     ln -s ${HOME}/register.sh /usr/bin/register && \
@@ -82,12 +93,10 @@ RUN cd ${HOME} && \
       --add-entrypoint="ENTRY_LOGS:${ENTRY_LOGS}" && \
     \
     echo "> 8. cleanup" && \
-    apt-get clean && \
-    apt-get autoclean && \
     apt-get autoremove -y && \
     chown ${USER}:${USER} -R ${HOME} ${MOS_READY_PATH} ${MOS_TEMP_PATH} ${ENTRY_LOGS} ${ENTRY_USAGE} && \
     chmod 777 -R ${HOME} && chmod 444 -R ${HOME}/*.txt && \
-    rm -rf install.log ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
+    rm -rf install.log
 
 WORKDIR ${HOME}
 USER ${USER}

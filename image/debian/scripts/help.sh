@@ -119,6 +119,6 @@ echo -e "
 
 ${HEADER}License-information${NC}${TEXT}
  Copyright (C) 2009 - 2026 Institute for Community Medicine
- University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+ University Medicine of Greifswald - kontakt-ths@med.uni-greifswald.de
  GNU Affero General Public License version 3
 "

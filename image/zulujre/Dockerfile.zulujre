@@ -5,7 +5,7 @@ FROM ${TAG}
 # The MOSAIC-Project
 # __
 # Copyright (C) 2009 - 2026 Institute for Community Medicine
-# University Medicine of Greifswald - mosaic-project@uni-greifswald.de
+# University Medicine of Greifswald - kontakt-ths@med.uni-greifswald.de
 # __
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -22,7 +22,7 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20260204"
+ARG DATE_YMD="20260304"
 ARG JAVA_VERSION="21"
 ARG JAVA_DOWNLOAD_URL="https://cdn.azul.com/zulu/bin/"
 ENV JAVA_HOME="/usr/lib/jvm/zulu" \
@@ -41,10 +41,13 @@ LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
 USER root
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${HOME}"]
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["help-and-usage", "${ENTRY_USAGE}/"]
-RUN cd ${MOS_TEMP_PATH} && \
+COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=555 ["README.md", "${ENTRY_USAGE}/layer-readme/README-zulujre.md"]
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
+	--mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=apt-lists \
+    echo "> 0. check cache: apt-cache ($(du -sh /var/cache/apt/archives/ | awk '{print $1}'), $(ls /var/cache/apt/archives | wc -w) files)" && \
+	cd ${MOS_TEMP_PATH} && \
     echo "> 1. install system-updates" && \
-    apt-get update && \
-    if [ "$(date +%F)" != "$(stat -c '%.10y' $(ls -t /var/lib/dpkg/info/*.list | head -n 1))" ]; then apt-get upgrade -y; fi && \
+    apt-get update && apt-get upgrade -y && \
     \
     echo "> 2. install zulu-jre" && \
     ARCH="$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "arm64")" && \
@@ -77,11 +80,9 @@ RUN cd ${MOS_TEMP_PATH} && \
   	ln -sf ${ENTRY_JAVA_CACERTS} ${JAVA_HOME}${JAVA_VERSION}/lib/security/cacerts && \
     \
     echo "> 4. cleanup" && \
-    apt-get clean && \
-    apt-get autoclean && \
     apt-get autoremove -y && \
     chmod 777 -R ${HOME} ${ENTRY_JAVA_CACERTS} && \
     chown ${USER}:${USER} -R ${ENTRY_USAGE} ${JAVA_HOME} ${ENTRY_JAVA_CACERTS} ${ENTRY_JAVA_TRUSTS} && \
-    rm -rf ${MOS_TEMP_PATH}/* /var/lib/apt/lists/* /var/cache/apt/*
+    rm -rf ${MOS_TEMP_PATH}/*
 
 USER ${USER}
