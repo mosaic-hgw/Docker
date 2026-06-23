@@ -22,8 +22,8 @@ FROM ${TAG}
 # ###license-information-end###
 
 # variables
-ARG DATE_YMD="20260304"
-ARG JAVA_VERSION="21"
+ARG DATE_YMD="20260623"
+ARG JAVA_VERSION="25"
 ARG JAVA_DOWNLOAD_URL="https://cdn.azul.com/zulu/bin/"
 ENV JAVA_HOME="/usr/lib/jvm/zulu" \
     ENTRY_JAVA_CACERTS="/entrypoint-java-cacerts" \

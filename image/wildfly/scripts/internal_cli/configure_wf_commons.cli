@@ -1,7 +1,35 @@
-echo configure_wf_commons.cli version from 2026-05-19
+echo configure_wf_commons.cli version from 2026-06-10
 
 # logger for console
 #####################
+#>available-env< WF_SYSLOG_HOST syslog
+set syslogHost="syslog"
+if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSLOG_HOST})
+	set syslogHost=${env.WF_SYSLOG_HOST}
+end-if
+#>available-env< WF_SYSTEM_SYSLOG_HOST WF_SYSLOG_HOST
+if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSTEM_SYSLOG_HOST})
+	set syslogHost=${env.WF_SYSTEM_SYSLOG_HOST}
+end-if
+#>available-env< WF_SYSLOG_PORT 514
+set syslogPort="514"
+if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSLOG_PORT})
+	set syslogPort=${env.WF_SYSLOG_PORT}
+end-if
+#>available-env< WF_SYSTEM_SYSLOG_PORT WF_SYSLOG_PORT
+if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSTEM_SYSLOG_PORT})
+	set syslogPort=${env.WF_SYSTEM_SYSLOG_PORT}
+end-if
+#>available-env< WF_SYSLOG_FORMAT RFC3164
+set syslogFormat="RFC3164"
+if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSLOG_FORMAT})
+	set syslogFormat=${env.WF_SYSLOG_FORMAT}
+end-if
+#>available-env< WF_SYSTEM_SYSLOG_FORMAT WF_SYSLOG_FORMAT
+if (outcome == "success") of :resolve-expression(expression=${env.WF_SYSTEM_SYSLOG_FORMAT})
+	set syslogFormat=${env.WF_SYSTEM_SYSLOG_FORMAT}
+end-if
+
 set logLevel="INFO"
 #>deprecated-env< CONSOLE_LOG_LEVEL WF_SYSTEM_LOG_LEVEL
 if (outcome == "success") of :resolve-expression(expression=${env.CONSOLE_LOG_LEVEL})
@@ -87,6 +115,12 @@ if (result ~= "(?i).*file.*") of :resolve-expression(expression=$logTo)
 	/subsystem=logging/custom-handler=system-file-handler:write-attribute(name=formatter,value=$logPattern)
 	/subsystem=logging/root-logger=ROOT:add-handler(name="system-file-handler")
 end-if
+if (result ~= "(?i).*syslog.*") of :resolve-expression(expression=$logTo)
+	echo \>\>\> add system-logger to syslog
+	/subsystem=logging/syslog-handler=system-syslog-handler:add(hostname=${jboss.host.name},server-address=$syslogHost,port=$syslogPort,syslog-format=$syslogFormat,app-name=wildfly)
+	/subsystem=logging/root-logger=ROOT:add-handler(name="system-syslog-handler")
+end-if
+
 
 # Set WSDL address to use incoming request address
 ###################################################
@@ -203,5 +237,20 @@ if (result ~= "(?i)(off|false|no|0)") of :resolve-expression(expression=$temp)
     /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=enable-http2,value=false)
     /subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=allow-unescaped-characters-in-url,value=true)
 else
-    echo \>\>\> enable http2
+    echo \>\>\> remains enabled http2
+end-if
+
+# enable proxy-address-forwarding
+##################################
+#>available-env< WF_ENABLE_PROXY_ADDRESS_FORWARDING FALSE
+set temp=false
+if (outcome == "success") of :resolve-expression(expression=${env.WF_ENABLE_PROXY_ADDRESS_FORWARDING})
+	set temp=${env.WF_ENABLE_PROXY_ADDRESS_FORWARDING}
+end-if
+if (result ~= "(?i)(on|true|yes|1)") of :resolve-expression(expression=$temp)
+    echo \>\>\> enable proxy-address-forwarding
+	/subsystem=undertow/server=default-server/http-listener=default:write-attribute(name=proxy-address-forwarding,value=true)
+	/subsystem=undertow/server=default-server/https-listener=https:write-attribute(name=proxy-address-forwarding,value=true)
+else
+    echo \>\>\> remains disabled proxy-address-forwarding
 end-if

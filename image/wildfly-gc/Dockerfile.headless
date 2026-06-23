@@ -22,7 +22,7 @@ FROM ${TAG} AS build
 # ###license-information-end###
 
 # variables
-ARG CHROME_VERSION="145"
+ARG CHROME_VERSION="151"
 ARG CHROME_JSON_URL="https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone-with-downloads.json"
 
 USER root
@@ -60,7 +60,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
 ###########
 FROM ${TAG}
 
-ARG DATE_YMD="20260304"
+ARG DATE_YMD="20260623"
 
 # annotations
 LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
