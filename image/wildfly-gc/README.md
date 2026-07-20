@@ -8,15 +8,15 @@ The only modifications are the installation of Google Chrome and ChromeDriver, w
 `versions` shows all installed tools and components, with their versions.
 ```shell
 > docker run --rm mosaicgreifswald/wildfly-gc versions
-  last updated               : 2026-06-23 13:15:28
+  last updated               : 2026-07-20 10:20:09
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 13.5 (trixie)
+  Distribution               : Debian GNU/Linux 13.6 (trixie)
   zulu-jre                   : 25.0.3 
   WildFly                    : 40.0.1.Final
   MySQL-Connector            : 9.7.0
   MariaDB-Connector          : 3.5.9
-  PostgreSQL-Connector       : 42.7.11
+  PostgreSQL-Connector       : 42.7.13
   EclipseLink                : 4.0.9
-  Chrome-Headless-Shell      : 151.0.7908.0
-  Chrome-Driver              : 151.0.7908.0
+  Chrome-Headless-Shell      : 151.0.7922.34
+  Chrome-Driver              : 151.0.7922.34
 ```

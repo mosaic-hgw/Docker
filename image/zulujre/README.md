@@ -23,9 +23,9 @@ Only the slimmer JRE from Azul-Zulu is installed.
 
 # "versions" shows all installed tools and components, with their versions.
 > docker run --rm mosaicgreifswald/zulujre versions
-  last updated               : 2026-06-23 13:15:28
+  last updated               : 2026-07-20 10:20:09
   Architecture               : x86_64
-  Distribution               : Debian GNU/Linux 13.5 (trixie)
+  Distribution               : Debian GNU/Linux 13.6 (trixie)
   zulu-jre                   : 25.0.3
   
 # "entrypoints" lists all registered entrypoints.
@@ -37,7 +37,7 @@ Only the slimmer JRE from Azul-Zulu is installed.
 
 # get java-version
 > docker run --rm -it mosaicgreifswald/zulujre java -version
-openjdk version "21.0.10" 2026-01-20 LTS
+openjdk version "25.0.3" 2026-04-21 LTS
 ```
 ## Usage with untrusted servers
 ```shell
@@ -97,7 +97,8 @@ openjdk version "21.0.10" 2026-01-20 LTS
 ## Current Software-Versions on this Image
 | Date                       | Tags                                                                                                                                                                                                                                                                                                                                                                        | Changes                                                                                                                        |
 |----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| 2026-05-20<br><br>         | [25.0.3](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=25.0.3), [25](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=25), [latest](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=latest)<br>([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/92227e5edb6aa67f130126a59ad74f87f303836c/image/zulujre/Dockerfile.zulujre))<br> | **Debian** 13.5 "trixie"<br>**Java** 25.0.3                                                                                    |
+| 2026-07-20<br><br>         | [25.0.3](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=25.0.3), [25](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=25), [latest](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=latest)<br>([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/92227e5edb6aa67f130126a59ad74f87f303836c/image/zulujre/Dockerfile.zulujre))<br> | **Debian** 13.6 "trixie"<br>**Java** 25.0.3                                                                                    |
+| 2026-05-20<br><br>         | 25.0.3<br><br>                                                                                                                                                                                                                                                                                                                                                              | **Debian** 13.5 "trixie"<br>**Java** 25.0.3                                                                                    |
 | 2026-05-20<br><br>         | [21.0.11](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=21.0.11), [21](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=21)<br>([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/27824125287209dd59253f5a5f155cc9dead7787/image/zulujre/Dockerfile.zulujre))<br>                                                                             | **Debian** 13.5 "trixie"<br>**Java** 21.0.11                                                                                   |
 | 2026-02-04<br><br><br><br> | [21.0.10](https://hub.docker.com/r/mosaicgreifswald/zulujre/tags?name=21.0.10)<br>([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/ae5fe9e3cbc931311c7af8e82d54c1a2c67c0d7e/image/zulujre/Dockerfile.zulujre))<br><br><br>                                                                                                                                           | **Debian** 13.3 "trixie"<br>**Java** 21.0.10<br>**fixed** signal forwarding<br>**added** new handling with public certificates |
 | 2026-01-26<br><br>         | 21.0.10<br><br>                                                                                                                                                                                                                                                                                                                                                             | **Debian** 13.3 "trixie"<br>**Java** 21.0.10                                                                                   |

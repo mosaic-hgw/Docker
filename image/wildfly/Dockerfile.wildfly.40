@@ -39,10 +39,10 @@ ARG MARIA_CONNECTOR_FILE="mariadb-java-client-${MARIA_CONNECTOR_VERSION}.jar"
 ARG MARIA_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/mariadb/jdbc/mariadb-java-client/${MARIA_CONNECTOR_VERSION}/${MARIA_CONNECTOR_FILE}"
 ARG MARIA_CONNECTOR_SHA256="11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d"
 
-ARG PSQL_CONNECTOR_VERSION="42.7.11"
+ARG PSQL_CONNECTOR_VERSION="42.7.13"
 ARG PSQL_CONNECTOR_FILE="postgresql-${PSQL_CONNECTOR_VERSION}.jar"
 ARG PSQL_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/postgresql/postgresql/${PSQL_CONNECTOR_VERSION}/${PSQL_CONNECTOR_FILE}"
-ARG PSQL_CONNECTOR_SHA256="1981b31d3993c58702783c1cddf10a34e48c1f413d70ff1cb6def0a143484647"
+ARG PSQL_CONNECTOR_SHA256="6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93"
 
 ARG ECLIPSELINK_VERSION="4.0.9"
 ARG ECLIPSELINK_FILE="eclipselink-${ECLIPSELINK_VERSION}.jar"
@@ -111,6 +111,7 @@ RUN echo "> 8. start wildfly" && \
     (${WILDFLY_HOME}/bin/standalone.sh &) && \
     START=$(date +%s) && \
     TIMEOUT=240 && \
+    mkdir -m 777 ${ENTRY_WILDFLY_DEPLOYS} && \
     (until `/bin/bash ${WILDFLY_HOME}/wildfly_started.sh`;do sleep 1;SEC=$(($(date +%s)-START));if [ ${SEC} -ge $TIMEOUT ];then >&2 echo "starting-timeout (TIMEOUT=${TIMEOUT})";exit 1;fi;done) && \
     echo "> 9. prepare wildfly" && \
     ($JBOSS_CLI --connect --commands=" \
@@ -126,7 +127,7 @@ RUN echo "> 8. start wildfly" && \
         module remove --name=system.layers.base.org.eclipse.persistence, \
         /extension=org.wildfly.extension.microprofile.health-smallrye:add, \
         /subsystem=microprofile-health-smallrye:add, \
-        /subsystem=undertow/server=default-server/ajp-listener=myListener:add(socket-binding=ajp, scheme=http), \
+        /subsystem=undertow/server=default-server/ajp-listener=myListener:add(socket-binding=ajp), \
         /subsystem=elytron/file-audit-log=local-audit:remove(), \
         /subsystem=logging/pattern-formatter=DATE_DETAILED:add(pattern=\"%d %-5p %-4L [%c] (%t) %s%E%n\"), \
         /subsystem=logging/pattern-formatter=DATE_COMPACT:add(pattern=\"%d %-5.5p %-4.4L %-40.40c{2.} | %m%n\"), \
@@ -155,7 +156,7 @@ RUN echo "> 11. cleanup" && \
 ###########
 FROM ${TAG}
 
-ARG DATE_YMD="20260622"
+ARG DATE_YMD="20260716"
 ENV WILDFLY_HOME="${HOME}/wildfly" \
     JBOSS_CLI="${HOME}/wildfly/bin/jboss-cli.sh" \
     LAUNCH_JBOSS_IN_BACKGROUND="true" \
