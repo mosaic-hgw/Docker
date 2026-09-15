@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'docker/zulujre/**'
+      - 'image/zulujre/**'
       - '.github/workflows/docker-zulujre.yml'
 
   workflow_run:
