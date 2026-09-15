@@ -112,6 +112,7 @@ RUN echo "> 8. start wildfly" && \
     TIMEOUT=600 && \
     mkdir -m 777 ${ENTRY_WILDFLY_DEPLOYS} && \
     wait-for-it "localhost:9990" -t ${TIMEOUT} && \
+    sleep 5 && \
     echo "> 9. prepare wildfly" && \
     ($JBOSS_CLI --connect --timeout=${TIMEOUT}000 --commands=" \
         module add --name=clients.mysql --resources=${MOS_TEMP_PATH}/${MYSQL_CONNECTOR_FILE} --dependencies=javax.api\,javax.transaction.api, \
