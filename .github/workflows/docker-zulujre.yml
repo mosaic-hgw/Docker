@@ -55,28 +55,27 @@ jobs:
           echo "Java major version: ${JAVA_VERSION}"
       
           html=$(curl -fsSL "${JAVA_DOWNLOAD_URL}")
-      
+
           get_version() {
             local arch="$1"
       
-            deb_name=$(echo "$html" \
-              | grep -oE "zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre${JAVA_VERSION}\.[0-9\.]+-linux_${arch}\.deb" \
-              | sort -V \
-              | tail -n1)
-      
-            if [ -z "$deb_name" ]; then
-              echo "ERROR: No Zulu package found for ${arch}" >&2
-              exit 1
-            fi
-      
-            echo "Found ${arch} package: ${deb_name}" >&2
-      
-            echo "$deb_name" \
-              | sed -E "s/^zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre([0-9]+\.[0-9]+\.[0-9]+)-linux_${arch}\.deb$/\1/"
+            echo "$html" |
+              grep -oE "zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre${JAVA_VERSION}\.[0-9\.]+-linux_${arch}\.deb" |
+              sort -ruV |
+              head -n1 |
+              sed -E "s/^zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)-linux_${arch}\.deb$/\1/"
           }
       
           version_amd64=$(get_version "amd64")
           version_arm64=$(get_version "arm64")
+      
+          if [ -z "${version_amd64}" ]; then
+            echo "ERROR: No Zulu package found for amd64"
+            exit 1
+          elif [ -z "${version_arm64}" ]; then
+            echo "ERROR: No Zulu package found for arm64"
+            exit 1
+          fi
       
           echo "Zulu version amd64: ${version_amd64}"
           echo "Zulu version arm64: ${version_arm64}"
