@@ -108,11 +108,13 @@ RUN --mount=type=cache,target=/downloads,sharing=locked,id=downloads \
 	mkdir -pm 777 ${WILDFLY_HOME}/standalone/log && touch ${WILDFLY_HOME}/standalone/log/server.log
 
 RUN echo "> 8. start wildfly" && \
-    (${WILDFLY_HOME}/bin/standalone.sh -Djboss.ignore.root.username.warning=true -Djboss.as.management.blocking.timeout=600 &) && \
-    TIMEOUT=600 && \
+    TIMEOUT=300 && \
+    START=$(date +%s) && \
+    (${WILDFLY_HOME}/bin/standalone.sh -Djboss.ignore.root.username.warning=true -Djboss.as.management.blocking.timeout=${TIMEOUT} &) && \
     mkdir -m 777 ${ENTRY_WILDFLY_DEPLOYS} && \
-    wait-for-it "localhost:9990" -t ${TIMEOUT} && \
-    sleep 5 && \
+    until $JBOSS_CLI --connect --commands=":read-attribute(name=server-state)" >/dev/null 2>&1; do \
+        [ $(( $(date +%s) - START )) -ge "${TIMEOUT}" ] && echo "ERROR: WildFly did not become ready within ${TIMEOUT}s" && exit 1 || sleep 1; \
+    done && \
     echo "> 9. prepare wildfly" && \
     ($JBOSS_CLI --connect --timeout=${TIMEOUT}000 --commands=" \
         module add --name=clients.mysql --resources=${MOS_TEMP_PATH}/${MYSQL_CONNECTOR_FILE} --dependencies=javax.api\,javax.transaction.api, \
@@ -156,7 +158,7 @@ RUN echo "> 11. cleanup" && \
 ###########
 FROM ${TAG}
 
-ARG DATE_YMD="20260908"
+ARG DATE_YMD="20260915"
 ENV WILDFLY_HOME="${HOME}/wildfly" \
     JBOSS_CLI="${HOME}/wildfly/bin/jboss-cli.sh" \
     LAUNCH_JBOSS_IN_BACKGROUND="true" \
