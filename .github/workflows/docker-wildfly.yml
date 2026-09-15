@@ -41,10 +41,12 @@ jobs:
         run: |
           set -euo pipefail
       
-          fullversion=$(grep -E '^ARG WILDFLY_VERSION=' image/wildfly/Dockerfile.wildfly.40 \
-            | sed -E 's/^ARG WILDFLY_VERSION="?([0-9\.]+)\..*$"?/\1/' \
+          majorversion=$(grep -E '^ARG WILDFLY_VERSION=' image/wildfly/Dockerfile.wildfly.40 \
+            | sed -E 's/^ARG WILDFLY_VERSION="?([0-9]+)\..*"?/\1/' \
             | head -n1)
-          majorversion="${fullversion%%.*}"
+          fullversion=${majorversion}-$(grep -E '^ARG DATE_YMD=' image/wildfly/Dockerfile.wildfly.40 \
+            | sed -E 's/^ARG DATE_YMD="?([^"]+)"?/\1/' \
+            | head -n1)
 
           echo "WildFly full version: ${fullversion}"
           echo "WildFly major version: ${majorversion}"
