@@ -44,7 +44,7 @@ jobs:
           if [ -n "${JAVA_VERSION:-}" ]; then
             echo "Using JAVA_VERSION from environment: ${JAVA_VERSION}"
           else
-            JAVA_VERSION=$(grep -E '^ARG JAVA_VERSION=' docker/zulujre/Dockerfile \
+            JAVA_VERSION=$(grep -E '^ARG JAVA_VERSION=' image/zulujre/Dockerfile.zulujre \
               | sed -E 's/^ARG JAVA_VERSION="?([^"]+)"?/\1/' \
               | head -n1)
             echo "Using JAVA_VERSION from Dockerfile: ${JAVA_VERSION}"
