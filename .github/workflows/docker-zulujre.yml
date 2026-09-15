@@ -1,0 +1,117 @@
+name: Build and push zulujre-image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docker/zulujre/**'
+      - '.github/workflows/docker-zulujre.yml'
+
+  workflow_run:
+    workflows:
+      - Build and push debian-image
+    types:
+      - completed
+
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: docker
+
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        
+      - name: Determine Zulu version
+        id: zulujre
+        shell: bash
+        run: |
+          set -euo pipefail
+      
+          if [ -n "${JAVA_VERSION:-}" ]; then
+            echo "Using JAVA_VERSION from environment: ${JAVA_VERSION}"
+          else
+            JAVA_VERSION=$(grep -E '^ARG JAVA_VERSION=' docker/zulujre/Dockerfile \
+              | sed -E 's/^ARG JAVA_VERSION="?([^"]+)"?/\1/' \
+              | head -n1)
+            echo "Using JAVA_VERSION from Dockerfile: ${JAVA_VERSION}"
+          fi
+      
+          JAVA_DOWNLOAD_URL="https://cdn.azul.com/zulu/bin/"
+      
+          echo "Java major version: ${JAVA_VERSION}"
+      
+          html=$(curl -fsSL "${JAVA_DOWNLOAD_URL}")
+      
+          get_version() {
+            local arch="$1"
+      
+            deb_name=$(echo "$html" \
+              | grep -oE "zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre${JAVA_VERSION}\.[0-9\.]+-linux_${arch}\.deb" \
+              | sort -V \
+              | tail -n1)
+      
+            if [ -z "$deb_name" ]; then
+              echo "ERROR: No Zulu package found for ${arch}" >&2
+              exit 1
+            fi
+      
+            echo "Found ${arch} package: ${deb_name}" >&2
+      
+            echo "$deb_name" \
+              | sed -E "s/^zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre([0-9]+\.[0-9]+\.[0-9]+)-linux_${arch}\.deb$/\1/"
+          }
+      
+          version_amd64=$(get_version "amd64")
+          version_arm64=$(get_version "arm64")
+      
+          echo "Zulu version amd64: ${version_amd64}"
+          echo "Zulu version arm64: ${version_arm64}"
+      
+          if [ "${version_amd64}" != "${version_arm64}" ]; then
+            echo "ERROR: Different Zulu versions for amd64 and arm64!"
+            exit 1
+          fi
+      
+          majorversion="${version_amd64%%.*}"
+      
+          echo "Full version: ${version_amd64}"
+          echo "Major version: ${majorversion}"
+      
+          echo "fullversion=${version_amd64}" >> "$GITHUB_OUTPUT"
+          echo "majorversion=${majorversion}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./docker/zulujre
+          file: ./docker/zulujre/Dockerfile.zulujre
+          platforms: linux/amd64,linux/arm64
+          push: true
+          pull: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/zulujre:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/zulujre:${{ steps.zulujre.outputs.fullversion }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/zulujre:${{ steps.zulujre.outputs.majorversion }}
+
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
