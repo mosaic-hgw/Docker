@@ -7,6 +7,8 @@ on:
     paths:
       - 'image/debian/**'
       - '.github/workflows/docker-debian.yml'
+  schedule:
+    - cron: '30 3 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -53,8 +55,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ vars.DOCKERHUB_USERNAME }}/debian:latest
-            ${{ vars.DOCKERHUB_USERNAME }}/debian:${{ steps.debian.outputs.fullversion }}
-            ${{ vars.DOCKERHUB_USERNAME }}/debian:${{ steps.debian.outputs.majorversion }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/debian:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/debian:${{ steps.debian.outputs.fullversion }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/debian:${{ steps.debian.outputs.majorversion }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
