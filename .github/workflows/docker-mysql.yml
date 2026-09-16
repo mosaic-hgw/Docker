@@ -1,0 +1,75 @@
+name: Build and push mysql-image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'image/mysql/**'
+      - '.github/workflows/docker-mysql.yml'
+
+  workflow_run:
+    workflows:
+      - Build and push debian-image
+    types:
+      - completed
+
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: docker
+
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+        
+      - name: Get MySQL version
+        id: mysql
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          fullversion=$(grep -E '^ARG MYSQL_VERSION=' image/mysql/Dockerfile.mysql.9 \
+            | sed -E 's/^ARG MYSQL_VERSION="?([0-9\.]+)"?/\1/' \
+            | head -n1)
+          majorversion="${fullversion%%.*}"
+
+          echo "MySQL full version: ${fullversion}"
+          echo "MySQL major version: ${majorversion}"
+
+          echo "fullversion=${fullversion}" >> "$GITHUB_OUTPUT"
+          echo "majorversion=${majorversion}" >> "$GITHUB_OUTPUT"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: ./image/mysql
+          file: ./image/mysql/Dockerfile.mysql.9
+          platforms: linux/amd64,linux/arm64
+          push: true
+          pull: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/mysql:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/mysql:${{ steps.mysql.outputs.fullversion }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/mysql:${{ steps.mysql.outputs.majorversion }}
+
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
