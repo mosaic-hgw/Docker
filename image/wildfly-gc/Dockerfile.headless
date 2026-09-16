@@ -22,7 +22,7 @@ FROM ${TAG} AS build
 # ###license-information-end###
 
 # variables
-ARG CHROME_VERSION="151"
+ARG CHROME_VERSION="153"
 ARG CHROME_JSON_URL="https://googlechromelabs.github.io/chrome-for-testing/latest-versions-per-milestone-with-downloads.json"
 
 USER root
@@ -30,13 +30,15 @@ COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${MOS_TEMP_PAT
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["README.md", "/help-and-usage/layer-readme/README-chrome.md"]
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
 	--mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=apt-lists \
-    echo "> 0. check cache: apt-cache ($(du -sh /var/cache/apt/archives/ | awk '{print $1}'), $(ls /var/cache/apt/archives | wc -w) files)" && \
-    cd ${MOS_TEMP_PATH} && \
+    --mount=type=cache,target=/downloads,sharing=locked,id=downloads \
+	echo -n "> 0. check cache: apt-cache ($(du -sh /var/cache/apt/archives/ | awk '{print $1}'), $(ls /var/cache/apt/archives | wc -w) files)" && \
+	echo ", downloads ($(du -sh /downloads/ | awk '{print $1}'), $(ls /downloads | wc -w) files)" && \
+    cd /downloads && \
     echo "> 1. install jq unzip" && \
     apt-get update && apt-get install -y jq unzip && \
     \
     echo "> 2. get chrome-version" && \
-    ARCH="$([ "$(uname -m)" = "x86_64" ] && echo "linux64" || echo "mac-arm64")" && \
+    ARCH="$([ "$(uname -m)" = "x86_64" ] && echo "linux64" || echo "linux-arm64")" && \
     (curl -Lfo downloads.json ${CHROME_JSON_URL} || (>&2 /bin/echo -e "\ncurl -Lfo downloads.json ${CHROME_JSON_URL}\n" && exit 1)) && \
     if [ "$CHROME_VERSION" = "latest" ]; then \
 		CHROME_VERSION="$(jq '.milestones | keys | max' -r downloads.json)" ; \
@@ -44,23 +46,23 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=apt-cache \
     \
     echo -n "> 3. chrome-headless-shell " && \
     CHROME_URL="$(jq ".milestones[\"$CHROME_VERSION\"].downloads.\"chrome-headless-shell\"[] | select(.platform==\"${ARCH}\").url" -r downloads.json)" && \
-	((test -f chrome-headless-shell-${CHROME_VERSION}-${ARCH}.zip && mv chrome-headless-shell-${CHROME_VERSION}-${ARCH}.zip chrome-headless-shell.zip && echo e) || \
-    (echo d && curl -LfSo chrome-headless-shell.zip ${CHROME_URL}) || (>&2 echo -e "\ncurl -LfSo chrome-headless-shell.zip ${CHROME_URL}\n" && exit 1)) && \
-    unzip chrome-headless-shell.zip && \
+	((test -f chrome-headless-shell-${CHROME_VERSION}-${ARCH}.zip && echo e) || \
+    (echo d && curl -LfSo chrome-headless-shell-${CHROME_VERSION}-${ARCH}.zip ${CHROME_URL}) || (>&2 echo -e "\ncurl -LfSo chrome-headless-shell-${CHROME_VERSION}-${ARCH}.zip ${CHROME_URL}\n" && exit 1)) && \
+    unzip chrome-headless-shell-${CHROME_VERSION}-${ARCH}.zip && \
     mv chrome-headless-shell-${ARCH} ${HOME}/chrome && \
     \
     echo -n "> 4. chrome-driver " && \
     CHROME_URL="$(jq ".milestones[\"$CHROME_VERSION\"].downloads.chromedriver[] | select(.platform==\"${ARCH}\").url" -r downloads.json)" && \
-	((test -f chromedriver-${CHROME_VERSION}-${ARCH}.zip && mv chromedriver-${CHROME_VERSION}-${ARCH}.zip chromedriver.zip && echo e) || \
-    (echo d && curl -LfSo chromedriver.zip ${CHROME_URL}) || (>&2 echo -e "\ncurl -LfSo chromedriver.zip ${CHROME_URL}\n" && exit 1)) && \
-    unzip chromedriver.zip && \
-    mv chromedriver-${ARCH}/chromedriver ${HOME}/chrome/
+	((test -f chromedriver-${CHROME_VERSION}-${ARCH}.zip && echo e) || \
+    (echo d && curl -LfSo chromedriver-${CHROME_VERSION}-${ARCH}.zip ${CHROME_URL}) || (>&2 echo -e "\ncurl -LfSo chromedriver-${CHROME_VERSION}-${ARCH}.zip ${CHROME_URL}\n" && exit 1)) && \
+    unzip chromedriver-${CHROME_VERSION}-${ARCH}.zip && \
+    mv chromedriver-${ARCH}/chromedriver ${HOME}/chrome/ && rm -rf chromedriver-${ARCH}
 
 
 ###########
 FROM ${TAG}
 
-ARG DATE_YMD="20260623"
+ARG DATE_YMD="20260916"
 
 # annotations
 LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
