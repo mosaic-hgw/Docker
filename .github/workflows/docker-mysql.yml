@@ -52,6 +52,13 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Inspect Debian image
+        env:
+          DEBIAN_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/debian
+        run: |
+          set -x
+          docker buildx imagetools inspect "${DEBIAN_IMAGE}:latest"
+
       - name: Resolve and verify Debian base image
         id: debian
         shell: bash
