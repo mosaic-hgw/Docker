@@ -16,6 +16,10 @@ on:
 
   workflow_dispatch:
 
+concurrency:
+  group: mysql-image
+  cancel-in-progress: true
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -24,6 +28,10 @@ jobs:
     if: >
       github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
+
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -34,6 +42,40 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4.1.2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Resolve and verify Debian base image
+        id: debian
+        shell: bash
+        env:
+          DEBIAN_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/debian
+        run: |
+          set -euo pipefail
+          echo "Resolving ${DEBIAN_IMAGE}:latest"
+          digest="$(docker buildx imagetools inspect "${DEBIAN_IMAGE}:latest" | awk '/^Digest:/ {print $2; exit}')"
+
+          if [ -z "${digest}" ]; then
+            echo "ERROR: Could not determine Debian image digest"
+            exit 1
+          fi
+
+          echo "Debian digest: ${digest}"
+          cosign verify \
+            --certificate-identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/docker-debian.yml@refs/heads/main" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            "${DEBIAN_IMAGE}@${digest}"
+
+          echo "Debian image signature verified successfully."
+          echo "image=${DEBIAN_IMAGE}@${digest}" >> "$GITHUB_OUTPUT"
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
         
       - name: Get MySQL version
         id: mysql
@@ -52,17 +94,14 @@ jobs:
           echo "fullversion=${fullversion}" >> "$GITHUB_OUTPUT"
           echo "majorversion=${majorversion}" >> "$GITHUB_OUTPUT"
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: ./image/mysql
           file: ./image/mysql/Dockerfile.mysql.9
+          build-args: |
+            TAG=${{ steps.debian.outputs.image }}
           platforms: linux/amd64,linux/arm64
           push: true
           pull: true
@@ -70,6 +109,14 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/mysql:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/mysql:${{ steps.mysql.outputs.fullversion }}
             ${{ secrets.DOCKERHUB_USERNAME }}/mysql:${{ steps.mysql.outputs.majorversion }}
-
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Sign multi-arch image
+        env:
+          IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/mysql
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          echo "Signing ${IMAGE}@${DIGEST}"
+          cosign sign --yes "${IMAGE}@${DIGEST}"
