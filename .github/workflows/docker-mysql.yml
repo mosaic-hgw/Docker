@@ -60,14 +60,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Cosign version:"
-          cosign version
-          docker buildx imagetools inspect "${DEBIAN_IMAGE}:latest"
-
           echo "Resolving ${DEBIAN_IMAGE}:latest"
-          digest="$(docker buildx imagetools inspect "${DEBIAN_IMAGE}:latest" | awk '/^Digest:/ {print $2; exit}')"
-          echo "Debian digest: ${digest}"
-
+          digest="$(docker buildx imagetools inspect "${DEBIAN_IMAGE}:latest" | awk '/^Digest:/ && !found { print $2; found=1 }')"
           if [ -z "${digest}" ]; then
             echo "ERROR: Could not determine Debian image digest"
             exit 1
