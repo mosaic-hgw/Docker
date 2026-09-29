@@ -20,6 +20,11 @@ concurrency:
   group: jmeter-image
   cancel-in-progress: true
 
+env:
+  BASE_IMAGE_NAME: "zulujre"
+  CURRENT_IMAGE_NAME: "jmeter"
+  DOCKERFILE: "Dockerfile.jmeter.5"
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -52,11 +57,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Resolve and verify Base base image
+      - name: Resolve and verify base base image
         id: base
         shell: bash
         env:
-          BASE_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/zulujre
+          BASE_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.BASE_IMAGE_NAME }}
         run: |
           set -euo pipefail
 
@@ -69,7 +74,7 @@ jobs:
 
           echo "base digest: ${digest}"
           cosign verify \
-            --certificate-identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/docker-zulujre.yml@refs/heads/main" \
+            --certificate-identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/docker-${{ env.BASE_IMAGE_NAME }}.yml@refs/heads/main" \
             --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
             "${BASE_IMAGE}@${digest}"
 
@@ -77,13 +82,13 @@ jobs:
           echo "image=${BASE_IMAGE}@${digest}" >> "$GITHUB_OUTPUT"
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
         
-      - name: Get JMeter version
-        id: jmeter
+      - name: Get version
+        id: version
         shell: bash
         run: |
           set -euo pipefail
           
-          fullversion=$(grep -E '^ARG JMETER_VERSION=' image/jmeter/Dockerfile.jmeter.5 \
+          fullversion=$(grep -E '^ARG JMETER_VERSION=' image/${{ env.CURRENT_IMAGE_NAME }}/${{ env.DOCKERFILE }} \
             | sed -E 's/^ARG JMETER_VERSION="?([0-9\.]+)"?/\1/' \
             | head -n1)
           majorversion="${fullversion%%.*}"
@@ -98,23 +103,23 @@ jobs:
         id: build
         uses: docker/build-push-action@v7
         with:
-          context: ./image/jmeter
-          file: ./image/jmeter/Dockerfile.jmeter.5
+          context: ./image/${{ env.CURRENT_IMAGE_NAME }}
+          file: ./image/${{ env.CURRENT_IMAGE_NAME }}/${{ env.DOCKERFILE }}
           build-args: |
             TAG=${{ steps.base.outputs.image }}
           platforms: linux/amd64,linux/arm64
           push: true
           pull: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/jmeter:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/jmeter:${{ steps.jmeter.outputs.fullversion }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/jmeter:${{ steps.jmeter.outputs.majorversion }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CURRENT_IMAGE_NAME }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CURRENT_IMAGE_NAME }}:${{ steps.version.outputs.fullversion }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CURRENT_IMAGE_NAME }}:${{ steps.version.outputs.majorversion }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Sign multi-arch image
         env:
-          IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/jmeter
+          IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CURRENT_IMAGE_NAME }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
