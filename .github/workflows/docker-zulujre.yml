@@ -20,6 +20,11 @@ concurrency:
   group: zulujre-image
   cancel-in-progress: true
 
+env:
+  BASE_IMAGE_NAME: "debian"
+  CURRENT_IMAGE_NAME: "zulujre"
+  DOCKERFILE: "Dockerfile.zulujre"
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -56,7 +61,7 @@ jobs:
         id: base
         shell: bash
         env:
-          BASE_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/debian
+          BASE_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.BASE_IMAGE_NAME }}
         run: |
           set -euo pipefail
 
@@ -69,7 +74,7 @@ jobs:
 
           echo "base digest: ${digest}"
           cosign verify \
-            --certificate-identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/docker-debian.yml@refs/heads/main" \
+            --certificate-identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/docker-${{ env.BASE_IMAGE_NAME }}.yml@refs/heads/main" \
             --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
             "${BASE_IMAGE}@${digest}"
 
@@ -77,8 +82,8 @@ jobs:
           echo "image=${BASE_IMAGE}@${digest}" >> "$GITHUB_OUTPUT"
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
-      - name: Get Zulu version
-        id: zulujre
+      - name: Get version
+        id: version
         shell: bash
         run: |
           set -euo pipefail
@@ -86,21 +91,19 @@ jobs:
           if [ -n "${JAVA_VERSION:-}" ]; then
             echo "Using JAVA_VERSION from environment: ${JAVA_VERSION}"
           else
-            JAVA_VERSION=$(grep -E '^ARG JAVA_VERSION=' image/zulujre/Dockerfile.zulujre \
+            JAVA_VERSION=$(grep -E '^ARG JAVA_VERSION=' image/${{ env.CURRENT_IMAGE_NAME }}/${{ env.DOCKERFILE }} \
               | sed -E 's/^ARG JAVA_VERSION="?([^"]+)"?/\1/' \
               | head -n1)
             echo "Using JAVA_VERSION from Dockerfile: ${JAVA_VERSION}"
           fi
 
           JAVA_DOWNLOAD_URL="https://cdn.azul.com/zulu/bin/"
-
           echo "Java major version: ${JAVA_VERSION}"
 
           html=$(curl -fsSL "${JAVA_DOWNLOAD_URL}")
 
           get_version() {
             local arch="$1"
-
             echo "$html" |
               grep -oE "zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre${JAVA_VERSION}\.[0-9\.]+-linux_${arch}\.deb" |
               sort -ruV |
@@ -139,23 +142,23 @@ jobs:
         id: build
         uses: docker/build-push-action@v7
         with:
-          context: ./image/zulujre
-          file: ./image/zulujre/Dockerfile.zulujre
+          context: ./image/${{ env.CURRENT_IMAGE_NAME }}
+          file: ./image/${{ env.CURRENT_IMAGE_NAME }}/${{ env.DOCKERFILE }}
           build-args: |
             TAG=${{ steps.base.outputs.image }}
           platforms: linux/amd64,linux/arm64
           push: true
           pull: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/zulujre:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/zulujre:${{ steps.zulujre.outputs.fullversion }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/zulujre:${{ steps.zulujre.outputs.majorversion }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CURRENT_IMAGE_NAME }}:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CURRENT_IMAGE_NAME }}:${{ steps.version.outputs.fullversion }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CURRENT_IMAGE_NAME }}:${{ steps.version.outputs.majorversion }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Sign multi-arch image
         env:
-          IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/zulujre
+          IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CURRENT_IMAGE_NAME }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
           set -euo pipefail
