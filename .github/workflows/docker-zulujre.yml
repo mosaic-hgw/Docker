@@ -16,6 +16,10 @@ on:
 
   workflow_dispatch:
 
+concurrency:
+  group: zulujre-image
+  cancel-in-progress: true
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -24,6 +28,10 @@ jobs:
     if: >
       github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
+
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -34,13 +42,47 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
-        
-      - name: Determine Zulu version
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v4.1.2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Resolve and verify Debian base image
+        id: debian
+        shell: bash
+        env:
+          DEBIAN_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/debian
+        run: |
+          set -euo pipefail
+
+          echo "Resolving ${DEBIAN_IMAGE}:latest"
+          digest="$(docker buildx imagetools inspect "${DEBIAN_IMAGE}:latest" | awk '/^Digest:/ && !found { print $2; found=1 }')"
+          if [ -z "${digest}" ]; then
+            echo "ERROR: Could not determine Debian image digest"
+            exit 1
+          fi
+
+          echo "Debian digest: ${digest}"
+          cosign verify \
+            --certificate-identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/docker-debian.yml@refs/heads/main" \
+            --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+            "${DEBIAN_IMAGE}@${digest}"
+
+          echo "Debian image signature verified successfully."
+          echo "image=${DEBIAN_IMAGE}@${digest}" >> "$GITHUB_OUTPUT"
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Get Zulu version
         id: zulujre
         shell: bash
         run: |
           set -euo pipefail
-      
+
           if [ -n "${JAVA_VERSION:-}" ]; then
             echo "Using JAVA_VERSION from environment: ${JAVA_VERSION}"
           else
@@ -49,26 +91,26 @@ jobs:
               | head -n1)
             echo "Using JAVA_VERSION from Dockerfile: ${JAVA_VERSION}"
           fi
-      
+
           JAVA_DOWNLOAD_URL="https://cdn.azul.com/zulu/bin/"
-      
+
           echo "Java major version: ${JAVA_VERSION}"
-      
+
           html=$(curl -fsSL "${JAVA_DOWNLOAD_URL}")
 
           get_version() {
             local arch="$1"
-      
+
             echo "$html" |
               grep -oE "zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre${JAVA_VERSION}\.[0-9\.]+-linux_${arch}\.deb" |
               sort -ruV |
               head -n1 |
               sed -E "s/^zulu${JAVA_VERSION}\.[0-9\.]+-ca-jre([0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?)-linux_${arch}\.deb$/\1/"
           }
-      
+
           version_amd64=$(get_version "amd64")
           version_arm64=$(get_version "arm64")
-      
+
           if [ -z "${version_amd64}" ]; then
             echo "ERROR: No Zulu package found for amd64"
             exit 1
@@ -76,34 +118,31 @@ jobs:
             echo "ERROR: No Zulu package found for arm64"
             exit 1
           fi
-      
+
           echo "Zulu version amd64: ${version_amd64}"
           echo "Zulu version arm64: ${version_arm64}"
-      
+
           if [ "${version_amd64}" != "${version_arm64}" ]; then
             echo "ERROR: Different Zulu versions for amd64 and arm64!"
             exit 1
           fi
-      
+
           majorversion="${version_amd64%%.*}"
-      
+
           echo "Full version: ${version_amd64}"
           echo "Major version: ${majorversion}"
-      
+
           echo "fullversion=${version_amd64}" >> "$GITHUB_OUTPUT"
           echo "majorversion=${majorversion}" >> "$GITHUB_OUTPUT"
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: ./image/zulujre
           file: ./image/zulujre/Dockerfile.zulujre
+          build-args: |
+            TAG=${{ steps.debian.outputs.image }}
           platforms: linux/amd64,linux/arm64
           push: true
           pull: true
@@ -111,6 +150,14 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/zulujre:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/zulujre:${{ steps.zulujre.outputs.fullversion }}
             ${{ secrets.DOCKERHUB_USERNAME }}/zulujre:${{ steps.zulujre.outputs.majorversion }}
-
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Sign multi-arch image
+        env:
+          IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/zulujre
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          echo "Signing ${IMAGE}@${DIGEST}"
+          cosign sign --yes "${IMAGE}@${DIGEST}"
