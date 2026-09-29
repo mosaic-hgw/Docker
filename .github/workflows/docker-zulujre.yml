@@ -52,29 +52,29 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Resolve and verify Debian base image
-        id: debian
+      - name: Resolve and verify base base image
+        id: base
         shell: bash
         env:
-          DEBIAN_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/debian
+          BASE_IMAGE: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/debian
         run: |
           set -euo pipefail
 
-          echo "Resolving ${DEBIAN_IMAGE}:latest"
-          digest="$(docker buildx imagetools inspect "${DEBIAN_IMAGE}:latest" | awk '/^Digest:/ && !found { print $2; found=1 }')"
+          echo "Resolving ${BASE_IMAGE}:latest"
+          digest="$(docker buildx imagetools inspect "${BASE_IMAGE}:latest" | awk '/^Digest:/ && !found { print $2; found=1 }')"
           if [ -z "${digest}" ]; then
-            echo "ERROR: Could not determine Debian image digest"
+            echo "ERROR: Could not determine base image digest"
             exit 1
           fi
 
-          echo "Debian digest: ${digest}"
+          echo "base digest: ${digest}"
           cosign verify \
             --certificate-identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/docker-debian.yml@refs/heads/main" \
             --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
-            "${DEBIAN_IMAGE}@${digest}"
+            "${BASE_IMAGE}@${digest}"
 
-          echo "Debian image signature verified successfully."
-          echo "image=${DEBIAN_IMAGE}@${digest}" >> "$GITHUB_OUTPUT"
+          echo "base image signature verified successfully."
+          echo "image=${BASE_IMAGE}@${digest}" >> "$GITHUB_OUTPUT"
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
       - name: Get Zulu version
@@ -142,7 +142,7 @@ jobs:
           context: ./image/zulujre
           file: ./image/zulujre/Dockerfile.zulujre
           build-args: |
-            TAG=${{ steps.debian.outputs.image }}
+            TAG=${{ steps.base.outputs.image }}
           platforms: linux/amd64,linux/arm64
           push: true
           pull: true
