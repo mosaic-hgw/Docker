@@ -34,15 +34,15 @@ ARG MYSQL_CONNECTOR_FILE="mysql-connector-j-${MYSQL_CONNECTOR_VERSION}.jar"
 ARG MYSQL_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/com/mysql/mysql-connector-j/${MYSQL_CONNECTOR_VERSION}/${MYSQL_CONNECTOR_FILE}"
 ARG MYSQL_CONNECTOR_SHA256="0353648eaa1c91e0f4020c959abf756bc866ffd583df22ae6b6f6e0cbd43eb44"
 
-ARG MARIA_CONNECTOR_VERSION="3.5.9"
+ARG MARIA_CONNECTOR_VERSION="3.5.10"
 ARG MARIA_CONNECTOR_FILE="mariadb-java-client-${MARIA_CONNECTOR_VERSION}.jar"
 ARG MARIA_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/mariadb/jdbc/mariadb-java-client/${MARIA_CONNECTOR_VERSION}/${MARIA_CONNECTOR_FILE}"
-ARG MARIA_CONNECTOR_SHA256="11e3bb5bbf8ef0e806ae4d6c5d5033fedf7262cc777f0190bde8a2f3c8e6bd8d"
+ARG MARIA_CONNECTOR_SHA256="919b8c1c771d9ee3465811462f242c9543ab401e140c64988ddbf1d8abcb18b2"
 
-ARG PSQL_CONNECTOR_VERSION="42.7.13"
+ARG PSQL_CONNECTOR_VERSION="42.7.14"
 ARG PSQL_CONNECTOR_FILE="postgresql-${PSQL_CONNECTOR_VERSION}.jar"
 ARG PSQL_CONNECTOR_DOWNLOAD_URL="${MAVEN_REPOSITORY}/org/postgresql/postgresql/${PSQL_CONNECTOR_VERSION}/${PSQL_CONNECTOR_FILE}"
-ARG PSQL_CONNECTOR_SHA256="6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93"
+ARG PSQL_CONNECTOR_SHA1="0e7c94ce80cb1dd9875ff44ffe6a40a8aaa3eefd"
 
 ARG ECLIPSELINK_VERSION="4.0.9"
 ARG ECLIPSELINK_FILE="eclipselink-${ECLIPSELINK_VERSION}.jar"
@@ -64,7 +64,6 @@ COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["scripts", "${MOS_TEMP_PAT
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["help-and-usage", "/help-and-usage"]
 COPY --chown=${MOSAIC_UID}:${MOSAIC_GID} --chmod=777 ["README.md", "/help-and-usage/layer-readme/README-wildfly.md"]
 RUN --mount=type=cache,target=/downloads,sharing=locked,id=downloads \
-	--mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=apt-lists \
     echo "> 0. check cache: downloads ($(du -sh /downloads/ | awk '{print $1}'), $(ls /downloads | wc -w) files)" && \
     cd /downloads && \
     \
@@ -80,7 +79,7 @@ RUN --mount=type=cache,target=/downloads,sharing=locked,id=downloads \
 	\
 	echo -n "> 3. get postgresql-connector " && \
     ((test -f ${PSQL_CONNECTOR_FILE} && echo e) || (echo d && curl -LfsSO ${PSQL_CONNECTOR_DOWNLOAD_URL}) || (>&2 echo -e "\ncurl -LfsSO ${PSQL_CONNECTOR_DOWNLOAD_URL} \n" && exit 1)) && \
-	sha256sum ${PSQL_CONNECTOR_FILE} | grep -q ${PSQL_CONNECTOR_SHA256} || (>&2 echo -e "\nsha256sum failed $(sha256sum ${PSQL_CONNECTOR_FILE})" && exit 1) && \
+	sha1sum ${PSQL_CONNECTOR_FILE} | grep -q ${PSQL_CONNECTOR_SHA1} || (>&2 echo -e "\nsha1sum failed $(sha1sum ${PSQL_CONNECTOR_FILE})" && exit 1) && \
 	cp ./${PSQL_CONNECTOR_FILE} ${MOS_TEMP_PATH}/${PSQL_CONNECTOR_FILE} && \
 	\
     echo -n "> 4. get eclipselink " && \
@@ -158,7 +157,7 @@ RUN echo "> 11. cleanup" && \
 ###########
 FROM ${TAG}
 
-ARG DATE_YMD="20260915"
+ARG DATE_YMD="20261008"
 ENV WILDFLY_HOME="${HOME}/wildfly" \
     JBOSS_CLI="${HOME}/wildfly/bin/jboss-cli.sh" \
     LAUNCH_JBOSS_IN_BACKGROUND="true" \
@@ -181,7 +180,7 @@ ENV WILDFLY_HOME="${HOME}/wildfly" \
 # annotations
 LABEL org.opencontainers.image.authors="ronny.schuldt@uni-greifswald.de" \
       org.opencontainers.image.source="https://hub.docker.com/repository/docker/mosaicgreifswald/wildfly" \
-      org.opencontainers.image.version="39-${DATE_YMD}" \
+      org.opencontainers.image.version="40-${DATE_YMD}" \
       org.opencontainers.image.vendor="uni-greifswald.de" \
       org.opencontainers.image.title="mosaic-wildfly" \
       org.opencontainers.image.license="AGPLv3" \

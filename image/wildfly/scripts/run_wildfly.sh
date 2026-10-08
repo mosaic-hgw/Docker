@@ -113,5 +113,7 @@ if [ -n "${WF_WAIT_FOR_PORTS}" ]; then
   done
 fi
 
+#>available-env< WF_DEBUG false
 WF_OPTS="-Djboss.server.log.dir=${ENTRY_LOGS}/wildfly $([[ ${WF_DEBUG,,} =~ ^(true|yes|on|1)$ ]] && echo '--debug')"
+
 exec ${WILDFLY_HOME}/bin/standalone.sh -b 0.0.0.0 -bmanagement 0.0.0.0 ${WF_OPTS}

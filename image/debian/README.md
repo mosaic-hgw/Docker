@@ -34,13 +34,17 @@ register \
 | Processing | MOS_INCLUDE_PROCESSES | \<REGEX\>                                |               |
 | Processing | MOS_EXCLUDE_PROCESSES | \<REGEX\>                                |               |
 
+**You can also find an overview of all available variables on our website**:  [www.ths-greifswald.de](https://www.ths-greifswald.de/overview-of-configuration-options/?action=documentation&tool=Debian&version=13.7&category=all&show_all_variables=1)
+
+Or directly in the image using the command: `docker run --rm mosaicgreifswald/debian envs`
+
 The `MOS_RUN_MODE`, in contrast to the `TYPE` in the `--add-run-script`, does not affect the individual layer, but the behaviour in the whole image:
 - `action` will wait until all action-run-scripts are successful finished and then also stop the service-run-scripts
 - `service` starts all run-scripts and tries to restart services if they quit
 - `cascade` like `service` but also stops all other services as soon as a service ends
 - `external` like `service` but does not restart an ended service nor does it stop the others
 
-The `MOS_WAIT_FOR_PORTS` variable holds a comma- or semicolon-separated list of endpoints in the form: `host:port[:timeout]`
+The `MOS_WAIT_FOR_PORTS` variable holds a comma- or semicolon-separated list of endpoints in the form: `host:port[:timeout[:sleep]]`
 - `host` hostname or IP to check
 - `port` TCP port to connect to
 - `timeout` (optional) seconds to wait before giving up (default 300)
@@ -77,7 +81,8 @@ The variable `MOS_EXCLUDE_PROCESSES` does exactly the opposite. It ignores proce
 ## Current Software-Versions on this Image
 | Date               | Tags                                                                                                                                                                                                                                                                             | Changes                                                                    |
 |--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
-| 2026-07-20         | [13.6](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13.6), [13](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13), [latest](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=latest)                                                        | **Debian** 13.6 "trixie"                                                   |
+| 2026-10-08         | [13.7](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13.7), [13](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13), [latest](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=latest)                                                        | **Debian** 13.7 "trixie"                                                   |
+| 2026-07-20         | [13.6](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13.6)                                                                                                                                                                                                          | **Debian** 13.6 "trixie"                                                   |
 | 2026-05-20         | [13.5](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13.5) ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/27824125287209dd59253f5a5f155cc9dead7787/image/debian/Dockerfile.debian))                                                                        | **Debian** 13.5 "trixie"                                                   |
 | 2026-03-09<br>     | [13.3](https://hub.docker.com/r/mosaicgreifswald/debian/tags?name=13.3) ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/f363ed74591a391300df0b15bd4dbc1c145bb29e/image/debian/Dockerfile.debian))<br>                                                                    | **Debian** 13.3 "trixie"<br>**fixed** signal-forwarding                    |
 | 2026-03-03<br>     | 13.3 ([Dockerfile](https://github.com/mosaic-hgw/Docker/blob/ae5fe9e3cbc931311c7af8e82d54c1a2c67c0d7e/image/debian/Dockerfile.debian))<br>                                                                                                                                       | **Debian** 13.3 "trixie"<br>**fixed** process-controlling                  |
