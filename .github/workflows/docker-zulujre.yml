@@ -154,7 +154,7 @@ jobs:
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CURRENT_IMAGE_NAME }}:${{ steps.version.outputs.fullversion }}
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.CURRENT_IMAGE_NAME }}:${{ steps.version.outputs.majorversion }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
 
       - name: Sign multi-arch image
         env:
