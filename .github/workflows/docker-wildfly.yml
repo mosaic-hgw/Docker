@@ -23,7 +23,7 @@ concurrency:
 env:
   BASE_IMAGE_NAME: "zulujre"
   CURRENT_IMAGE_NAME: "wildfly"
-  DOCKERFILE: "Dockerfile.wildfly.40"
+  DOCKERFILE: "Dockerfile.wildfly.42"
 
 jobs:
   build-and-push:

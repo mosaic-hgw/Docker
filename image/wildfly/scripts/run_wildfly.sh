@@ -113,6 +113,14 @@ if [ -n "${WF_WAIT_FOR_PORTS}" ]; then
   done
 fi
 
+#>available-env< WF_AJP_SECRET
+if [ -z "${WF_AJP_SECRET}" ]; then
+  JAVA_OPTS="${JAVA_OPTS} -Dio.undertow.ajp.REQUIRE_AJP_SECRET=false"
+else
+  echoInfo ">>> found env-variable WF_AJP_SECRET, this will set io.undertow.ajp.REQUIRE_AJP_SECRET=true and io.undertow.ajp.AJP_SECRET whit secret"
+  JAVA_OPTS="${JAVA_OPTS} -Dio.undertow.ajp.REQUIRE_AJP_SECRET=true -Dio.undertow.ajp.AJP_SECRET=${WF_AJP_SECRET}"
+fi
+
 #>available-env< WF_DEBUG false
 WF_OPTS="-Djboss.server.log.dir=${ENTRY_LOGS}/wildfly $([[ ${WF_DEBUG,,} =~ ^(true|yes|on|1)$ ]] && echo '--debug')"
 
