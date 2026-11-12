@@ -70,6 +70,15 @@ if [[ ${JMETER_LOG_LEVEL^^} =~ (TRACE|DEBUG|INFO|WARN|ERROR|OFF) ]]; then
   LOG_LEVEL="-L${JMETER_LOG_LEVEL^^}"
 fi
 
+#>available-env< JMETER_ARGS
+JMETER_ARGS_ARRAY=()
+if [ -n "${JMETER_ARGS}" ]; then
+  read -r -a JMETER_ARGS_ARRAY <<< "${JMETER_ARGS}"
+  for i in "${!JMETER_ARGS_ARRAY[@]}"; do
+    [[ "${JMETER_ARGS_ARRAY[$i]}" == -J* ]] || JMETER_ARGS_ARRAY[$i]="-J${JMETER_ARGS_ARRAY[$i]}"
+  done
+fi
+
 #>available-env< JMETER_REPORT_TYPE none
 case "${JMETER_REPORT_TYPE,,}" in
   none | '')    REPORT_TYPE='';;
@@ -90,7 +99,7 @@ for TEST_FILE in ${TEST_FILES}; do
     REPORTING="-l ${REPORT_FILE}.jtl -Jjmeter.save.saveservice.output_format=${REPORT_TYPE}"
 
   # start jmeter with test
-  CMD=(jmeter -n -t "${TEST_FILE}" ${REPORTING} ${PROPERTIES} ${LOG_LEVEL} -Jprometheus.ip=0.0.0.0)
+  CMD=(jmeter -n -t "${TEST_FILE}" ${REPORTING} ${PROPERTIES} ${LOG_LEVEL} "${JMETER_ARGS_ARRAY[@]}" -Jprometheus.ip=0.0.0.0)
   echoDeb "${CMD[*]}"
   export JAVA_VERSION=21
   "${CMD[@]}"
